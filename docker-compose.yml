@@ -1,0 +1,31 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  auth-service:
+    build: ./apps/auth
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+
+  otp-service:
+    build: ./apps/otp
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+
+  api-gateway:
+    build: ./apps/backend
+    depends_on:
+      - auth-service
+      - otp-service
+    ports:
+      - "3000:3000"
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
