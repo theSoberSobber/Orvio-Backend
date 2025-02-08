@@ -3,6 +3,7 @@ import { AppController } from './controllers/rootController/app.controller';
 import { AppService } from './app.service';
 import { AuthController } from './controllers/authController/auth/auth.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { RmqUrl } from '@nestjs/microservices/external/rmq-url.interface';
 
 @Module({
   imports: [
@@ -11,8 +12,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         name: 'AUTH_SERVICE',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://guest:guest@rabbitmq:5672'],
-          queue: 'auth_queue',
+          urls: [process.env.RABBITMQ_URL as RmqUrl],
+          queue: process.env.AUTH_QUEUE,
           queueOptions: { durable: true },
         },
       },

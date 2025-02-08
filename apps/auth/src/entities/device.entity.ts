@@ -6,7 +6,7 @@ export class Device {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ unique: true })
   deviceHash: string;
 
   @Column({ unique: true })

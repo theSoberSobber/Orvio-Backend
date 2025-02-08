@@ -6,13 +6,14 @@ import { OtpService } from './otp.service';
 export class OtpController {
   constructor(private readonly otpService: OtpService) {}
 
-  @MessagePattern('send_otp')
-  sendOtp(phone: string) {
-    return this.otpService.sendOtp(phone);
+  @MessagePattern('otp.send_otp')
+  sendOtp(data: { phoneNumber: string }) {
+    return this.otpService.sendOtp(data.phoneNumber);
   }
 
-  @MessagePattern('verify_otp')
-  verifyOtp(data: { transactionId: string; otp: string }) {
-    return this.otpService.verifyOtp(data.transactionId, data.otp);
+  @MessagePattern('otp.verify_otp')
+  verifyOtp(data: { transactionId: string; userInputOtp: string }) {
+    console.log("Data that reached to the controller", data);
+    return this.otpService.verifyOtp(data.transactionId, data.userInputOtp);
   }
 }

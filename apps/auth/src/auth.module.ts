@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { User } from './entities/user.entity';
 import { Device } from './entities/device.entity';
+import { Session } from './entities/session.entity';
 import { RmqUrl } from '@nestjs/microservices/external/rmq-url.interface';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -18,19 +19,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      entities: [User, Device],
-      synchronize: true,
+      entities: [User, Device, Session],
+      synchronize: true, // set to false in production
     }),
-    TypeOrmModule.forFeature([User, Device]),
+    TypeOrmModule.forFeature([User, Device, Session]),
     ClientsModule.register([
       {
         name: 'OTP_SERVICE',
         transport: Transport.RMQ,
         options: {
           urls: [process.env.RABBITMQ_URL as RmqUrl],
-          queue: 'otp_queue',
+          queue: process.env.OTP_QUEUE,
           queueOptions: {
-            durable: false,
+            durable: true,
           },
         },
       },

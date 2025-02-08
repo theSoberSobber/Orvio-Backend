@@ -1,0 +1,26 @@
+curl -X POST http://localhost:3000/auth/register \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3OTY5ZjNlNy1lZGNmLTQzMDUtYjg1MS0yZGFkNGU3MWFmZjYiLCJpYXQiOjE3MzkwMjIxODIsImV4cCI6MTczOTAyNTc4Mn0.mzx8oxOo4r5sTX51TncI9AS69x1AQDVbSTbMa5sr7a8" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "deviceHash": "your_device_hash",
+        "fcmToken": "your_fcm_token"
+      }'
+
+
+curl -X GET http://localhost:3000/auth/me \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3OTY5ZjNlNy1lZGNmLTQzMDUtYjg1MS0yZGFkNGU3MWFmZjYiLCJpYXQiOjE3MzkwMjIxODIsImV4cCI6MTczOTAyNTc4Mn0.mzx8oxOo4r5sTX51TncI9AS69x1AQDVbSTbMa5sr7a8"
+
+curl -X POST http://localhost:3000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+        "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3OTY5ZjNlNy1lZGNmLTQzMDUtYjg1MS0yZGFkNGU3MWFmZjYiLCJpYXQiOjE3MzkwMjIxODJ9.u7I70cmNOkClxuf3zFLdDW1DMEgYYuF0C1gLMViBHdQ"
+      }'
+
+
+curl -X POST http://localhost:3000/auth/verify-otp \
+-H "Content-Type: application/json" \
+-d '{"transactionId":"1739014270067", "userInputOtp": "123456"}'
+
+curl -X POST http://localhost:3000/auth/signUp \
+-H "Content-Type: application/json" \
+-d '{"phoneNumber":"+1234567890"}'
