@@ -1,90 +1,49 @@
 import requests
+import json
 
-# Constants
-BASE_URL = "http://localhost:3000/auth"
-PHONE_NUMBER = "1234567890"
-CORRECT_OTP = "123456"
+BASE_URL = "http://localhost:3000"
 
-# Store tokens globally for testing
-access_token = None
-refresh_token = None
+def getMe(headers):
+    res = requests.get(f"{BASE_URL}/auth/me", headers=headers).json()
+    print(json.dumps(res, indent=2))
 
-def print_response(response):
-    """ Helper function to print response details. """
-    print(f"Status Code: {response.status_code}")
-    try:
-        print(f"Response JSON: {response.json()}")
-    except:
-        print(f"Response Text: {response.text}")
+L = requests.post(f"{BASE_URL}/auth/signup", json={"phoneNumber": "+919770483089"})
+tid = L.json()["transactionId"]
+print("Transaction Id: ", tid)
 
-def test_signup():
-    """ Test user signup (OTP request). """
-    url = f"{BASE_URL}/signup"
-    payload = {"phoneNumber": PHONE_NUMBER}
-    response = requests.post(url, json=payload)
-    print("Signup Response:")
-    print_response(response)
-    assert response.status_code == 201, "Signup failed!"
-    return response.json().get("transactionId")
+M = requests.post(f"{BASE_URL}/auth/verify-otp", json={"transactionId": tid ,"userInputOtp": "123456"})
+refreshToken = M.json()["refreshToken"]
+accessToken = M.json()["accessToken"]
 
-def test_verify_otp(transaction_id):
-    """ Test OTP verification (login). """
-    global access_token, refresh_token
-    url = f"{BASE_URL}/verify-otp"
-    payload = {"transactionId": transaction_id, "userInputOtp": CORRECT_OTP}
-    response = requests.post(url, json=payload)
-    print("Verify OTP Response:")
-    print_response(response)
-    assert response.status_code == 201, "OTP verification failed!"
-    
-    data = response.json()
-    access_token = data.get("accessToken")
-    refresh_token = data.get("refreshToken")
+print("Refresh Token: ", refreshToken)
+print("Access Token: ", accessToken)
 
-def test_protected_route():
-    """ Test accessing protected route with valid/invalid tokens. """
-    global access_token
-    url = f"{BASE_URL}/me"
-    
-    # Valid token
-    headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(url, headers=headers)
-    print("Protected Route (Valid Token) Response:")
-    print_response(response)
-    assert response.status_code == 200, "Protected route failed with valid token!"
+headers = {
+    "Authorization": f"Bearer {accessToken}"
+}
 
-    # Invalid token
-    headers = {"Authorization": "Bearer invalid_token"}
-    response = requests.get(url, headers=headers)
-    print("Protected Route (Invalid Token) Response:")
-    print_response(response)
-    assert response.status_code == 401, "Invalid token should not be accepted!"
+accessToken = requests.post(f"{BASE_URL}/auth/refresh", json={"refreshToken": refreshToken}).json()["accessToken"]
 
-def test_refresh_token():
-    """ Test refreshing access token. """
-    global refresh_token, access_token
-    url = f"{BASE_URL}/refresh"
-    payload = {"refreshToken": refresh_token}
-    response = requests.post(url, json=payload)
-    print("Refresh Token Response:")
-    print_response(response)
-    
-    assert response.status_code == 200, "Token refresh failed!"
-    access_token = response.json().get("accessToken")
+getMe(headers=headers)
 
-def test_invalid_refresh_token():
-    """ Test refresh with an invalid token. """
-    url = f"{BASE_URL}/refresh"
-    payload = {"refreshToken": "invalid_refresh_token"}
-    response = requests.post(url, json=payload)
-    print("Invalid Refresh Token Response:")
-    print_response(response)
-    assert response.status_code == 403, "Invalid refresh token should be rejected!"
+N = requests.post(f"{BASE_URL}/auth/register", json={"deviceHash": "test_device_hash" ,"fcmToken": "test_device_token"}, headers=headers)
 
-# Run tests in order
-if __name__ == "__main__":
-    transaction_id = test_signup()
-    test_verify_otp(transaction_id)
-    test_protected_route()
-    test_refresh_token()
-    test_invalid_refresh_token()
+getMe(headers=headers)
+
+O = requests.post(f"{BASE_URL}/auth/signOut", headers=headers)
+
+getMe(headers=headers)
+
+P = requests.post(f"{BASE_URL}/auth/signOutAll", headers=headers)
+
+getMe(headers=headers) # valid for another 10 mins till the JWT Lasts
+
+
+# should not be able to
+# but why is it 500!!!!
+# it should be 403!!! (forbidden)
+# and otherwise 401 (unauthorized)
+
+N = requests.post(f"{BASE_URL}/auth/register", json={"deviceHash": "test_device_hash" ,"fcmToken": "test_device_token"}, headers=headers)
+
+print(N.text)

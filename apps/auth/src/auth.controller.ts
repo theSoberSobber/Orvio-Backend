@@ -22,14 +22,22 @@ export class AuthController {
   }
 
   @MessagePattern('auth.register')
-  async registerDevice(data: { userId: string; fcmToken: string; deviceHash: string }) {
-    return this.authService.registerDevice(data.userId, data.deviceHash, data.fcmToken);
+  async registerDevice(data: { userId: string; fcmToken: string; deviceHash: string; sessionId: string }) {
+    return this.authService.registerDevice(data.userId, data.deviceHash, data.fcmToken, data.sessionId);
   }
 
   @MessagePattern('auth.me')
   async getMe(data: { userId: string }) {
     return this.authService.getUserProfile(data.userId);
   }
-  
-  // TODO: add a signOut from all clients method
+
+  @MessagePattern('auth.signOut')
+  async signOut(data: { sessionId: string }) {
+    return this.authService.signOut(data.sessionId);
+  }
+
+  @MessagePattern('auth.signOutAll')
+  async signOutAll(data: { userId: string }) {
+    return this.authService.signOutAll(data.userId);
+  }
 }

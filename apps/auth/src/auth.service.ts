@@ -1,8 +1,8 @@
 import { Injectable, Inject, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
-import { Device } from './entities/device.entity';
-import { Session } from './entities/session.entity';
+import { User } from '../../shared/entities/user.entity';
+import { Device } from '../../shared/entities/device.entity';
+import { Session } from '../../shared/entities/session.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import * as jwt from 'jsonwebtoken';
@@ -38,51 +38,91 @@ export class AuthService {
     }
   
     const refreshToken = jwt.sign({ userId: user.id, iatCustom: Date.now().toString() }, process.env.REFRESH_TOKEN_SECRET);
-    const accessToken = jwt.sign({ userId: user.id, iatCustom: Date.now().toString() }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
-  
+
     const session = this.sessionRepo.create({ refreshToken, user });
     await this.sessionRepo.save(session);
+
+    const accessToken = jwt.sign({ userId: user.id, iatCustom: Date.now().toString(), sessionId: session.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
   
     return { refreshToken, accessToken };
   }  
 
   async refreshToken(refreshToken: string) {
+    // here refresh token is needed makes sense since no JWT
     const session = await this.sessionRepo.findOne({ where: { refreshToken }, relations: ['user'] });
   
     if (!session) {
       throw new ForbiddenException('Invalid refresh token'); // Tell client to sign out
     }
   
-    const accessToken = jwt.sign({ userId: session.user.id, iatCustom: Date.now().toString() }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const accessToken = jwt.sign({ userId: session.user.id, iatCustom: Date.now().toString(), sessionId: session.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
     return { accessToken };
   }  
 
-  async signOut(refreshToken: string) {
-    await this.sessionRepo.delete({ refreshToken });
+  async signOut(sessionId: string) {
+    const session = await this.sessionRepo.findOne({ where: { id: sessionId }, relations: ['user', 'device'] });
+  
+    if (!session) {
+      throw new ForbiddenException('Invalid session');
+    }
+  
+    await this.sessionRepo.delete({ id: sessionId });
+  
+    if (session.device) {
+      session.device.isActive = false;
+      await this.deviceRepo.save(session.device);
+    }
+  
+    return { success: true };
+  }   
+
+  async signOutAll(userId: string) {
+    await this.sessionRepo.delete({ user: { id: userId } });
+    await this.deviceRepo.update({ user: { id: userId } }, { isActive: false });
     return { success: true };
   }
 
-  async registerDevice(userId: string, deviceHash: string, fcmToken: string) {
+  async registerDevice(userId: string, deviceHash: string, fcmToken: string, sessionId: string) {
+
+    // to restrict immediately after signOut
+    // otherwise jwt lasts for a while
+    const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
+    if (!session) {
+        throw new ForbiddenException('Session not found');
+    }
+
     const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['devices'] });
     if (!user) {
-      throw new UnauthorizedException('Invalid user');
+        throw new UnauthorizedException('Invalid user');
     }
-  
+
     let device = await this.deviceRepo.findOne({ where: { deviceHash } });
-  
+
     if (!device) {
-      device = this.deviceRepo.create({ deviceHash, fcmToken, user });
-      await this.deviceRepo.save(device);
+        device = this.deviceRepo.create({ deviceHash, fcmToken, user });
     } else {
-      device.fcmToken = fcmToken;
-      device.user = user;
-      await this.deviceRepo.save(device);
+        device.user = user;
+        device.fcmToken = fcmToken;
     }
-  
+
+    device.isActive = true;
+    await this.deviceRepo.save(device);
+
+    await this.sessionRepo.update({ id: sessionId }, { device });
+
     return { success: true };
-  }  
+  }
 
   async getUserProfile(userId: string) {
+    // no need to restrict immediately
+    // not a sensitive method
+    // if want to implement get sessionId from the JWT in authGuard and pass in from the controller
+    // 
+    // const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
+    // if (!session) {
+    //     throw new ForbiddenException('Session not found');
+    // }
+
     const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['devices', 'sessions'] });
     if (!user){
       throw new UnauthorizedException('Invalid user');

@@ -6,6 +6,9 @@ export class Device {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ default: true })
+  isActive: boolean;
+
   @Column({ unique: true })
   deviceHash: string;
 
