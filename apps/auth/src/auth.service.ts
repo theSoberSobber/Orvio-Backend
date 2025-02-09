@@ -20,6 +20,7 @@ export class AuthService {
     @InjectRepository(Device) private deviceRepo: Repository<Device>,
     @InjectRepository(Session) private sessionRepo: Repository<Session>,
     @Inject('OTP_SERVICE') private readonly otpService: ClientProxy,
+    @Inject('FCM_SERVICE') private readonly fcmService: ClientProxy,
   ) {}
 
   async sendOtp(phoneNumber: string) {
@@ -109,6 +110,13 @@ export class AuthService {
     await this.deviceRepo.save(device);
 
     await this.sessionRepo.update({ id: sessionId }, { device });
+
+    // 🔥 Emit event to FCM service
+    // emit instead of send cus async processing
+    // why holdup register request for fcm service right
+
+    // TODO: strip relations before sending to cache to save up on cache space
+    this.fcmService.emit('fcm.registerDevice', { device });
 
     return { success: true };
   }

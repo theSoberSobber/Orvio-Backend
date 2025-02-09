@@ -1,3 +1,8 @@
+
+// implement method to get if there are unread message failures
+// till now, if there are then the client is supposed to say battery optimization stuff
+// do this using kafka cus no need of acks
+
 import { Controller } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { AuthService } from './auth.service';

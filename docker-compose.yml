@@ -49,6 +49,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      otp-service:
     env_file:
       - .env
     command: npm run start:dev auth
@@ -66,13 +67,26 @@ services:
       - .env
     command: npm run start:dev otp
 
+  fcm-service:
+    build:
+      context: ./
+      dockerfile: ./apps/fcm/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    command: npm run start:dev fcm
+
   api-gateway:
     build:
       context: ./
       dockerfile: ./apps/backend/Dockerfile
     depends_on:
       - auth-service
-      - otp-service
+      - fmc-service
     ports:
       - "3000:3000"
     env_file:

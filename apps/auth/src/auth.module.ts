@@ -35,6 +35,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           },
         },
       },
+      {
+        name: 'FCM_SERVICE',
+        transport: Transport.RMQ,
+        options: {
+          urls: [process.env.RABBITMQ_URL as RmqUrl],
+          queue: process.env.FCM_QUEUE,
+          queueOptions: { 
+            durable: true 
+          },
+        },
+      },
     ]),
   ],
   controllers: [AuthController],

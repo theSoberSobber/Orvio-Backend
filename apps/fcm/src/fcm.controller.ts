@@ -1,12 +1,18 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
+import { MessagePattern } from '@nestjs/microservices';
 import { FcmService } from './fcm.service';
 
 @Controller()
 export class FcmController {
   constructor(private readonly fcmService: FcmService) {}
 
-  @Get()
-  getHello(): string {
-    return this.fcmService.getHello();
+  @MessagePattern('fcm.registerDevice')
+  async registerDevice(device: any) {
+    return this.fcmService.registerDevice(device);
+  }
+
+  @MessagePattern('fcm.getToken')
+  async getToken() {
+    return this.fcmService.getToken();
   }
 }
