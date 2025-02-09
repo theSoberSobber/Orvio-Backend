@@ -30,21 +30,21 @@ N = requests.post(f"{BASE_URL}/auth/register", json={"deviceHash": "test_device_
 
 getMe(headers=headers)
 
-O = requests.post(f"{BASE_URL}/auth/signOut", headers=headers)
+# O = requests.post(f"{BASE_URL}/auth/signOut", headers=headers)
 
-getMe(headers=headers)
+# getMe(headers=headers)
 
-P = requests.post(f"{BASE_URL}/auth/signOutAll", headers=headers)
+# P = requests.post(f"{BASE_URL}/auth/signOutAll", headers=headers)
 
-getMe(headers=headers) # valid for another 10 mins till the JWT Lasts
+# getMe(headers=headers) # valid for another 10 mins till the JWT Lasts
 
-# TODO: FIX THIS BEFORE WORKING ON THE APP!!! 
-# OTHERWISE API INTERCEPTOR WON'T WORK!!!
-# should not be able to
-# but why is it 500!!!!
-# it should be 403!!! (forbidden)
-# and otherwise 401 (unauthorized)
+# # TODO: FIX THIS BEFORE WORKING ON THE APP!!! 
+# # OTHERWISE API INTERCEPTOR WON'T WORK!!!
+# # should not be able to
+# # but why is it 500!!!!
+# # it should be 403!!! (forbidden)
+# # and otherwise 401 (unauthorized)
 
-N = requests.post(f"{BASE_URL}/auth/register", json={"deviceHash": "test_device_hash" ,"fcmToken": "test_device_token"}, headers=headers)
+# N = requests.post(f"{BASE_URL}/auth/register", json={"deviceHash": "test_device_hash" ,"fcmToken": "test_device_token"}, headers=headers)
 
-print(N.text)
+# print(N.text)

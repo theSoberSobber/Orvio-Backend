@@ -10,9 +10,10 @@ export class FcmService {
   private readonly deviceMapKey = 'fcm_devices'; // Redis Hash for token → device mapping
 
   async registerDevice(device: any) {
-    await this.redis.sadd(this.tokenSetKey, device.fcmToken);
+    console.log("GOT REGISTRATION FROM AUTH SERVICE!!", device);
+    await this.redis.sadd(this.tokenSetKey, device.device.fcmToken);
 
-    await this.redis.hset(this.deviceMapKey, device.fcmToken, JSON.stringify(device));
+    await this.redis.hset(this.deviceMapKey, device.device.fcmToken, JSON.stringify(device));
 
     return { success: true, message: 'Device registered/updated in Redis' };
   }

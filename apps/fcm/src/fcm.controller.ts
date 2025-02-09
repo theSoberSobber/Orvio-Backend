@@ -8,6 +8,7 @@ export class FcmController {
 
   @MessagePattern('fcm.registerDevice')
   async registerDevice(device: any) {
+    console.log("[FCM SERVICE] REGISTRATION MESSAGE REACHED CONTROLLER");
     return this.fcmService.registerDevice(device);
   }
 

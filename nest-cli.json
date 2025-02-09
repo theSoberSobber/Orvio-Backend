@@ -36,6 +36,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/otp/tsconfig.app.json"
       }
+    },
+    "fcm": {
+      "type": "application",
+      "root": "apps/fcm",
+      "entryFile": "main",
+      "sourceRoot": "apps/fcm/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/fcm/tsconfig.app.json"
+      }
     }
   }
 }

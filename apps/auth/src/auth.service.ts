@@ -116,8 +116,10 @@ export class AuthService {
     // why holdup register request for fcm service right
 
     // TODO: strip relations before sending to cache to save up on cache space
-    this.fcmService.emit('fcm.registerDevice', { device });
-
+    console.log("[Auth Service] Emitting Event to FCM Service for device registration...")
+    // await this.fcmService.send('fcm.registerDevice', { device }).toPromise();
+    this.fcmService.emit('fcm.registerDevice', { device }); // fire and forget (emit) vs wait for response (send)
+    console.log("[Auth Service] Emitted Event to FCM Service for device registration...")
     return { success: true };
   }
 
