@@ -28,6 +28,15 @@
         "tsConfigPath": "apps/backend/tsconfig.app.json"
       }
     },
+    "fcm": {
+      "type": "application",
+      "root": "apps/fcm",
+      "entryFile": "main",
+      "sourceRoot": "apps/fcm/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/fcm/tsconfig.app.json"
+      }
+    },
     "fcmToken": {
       "type": "application",
       "root": "apps/fcmToken",
