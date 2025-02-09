@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
 
+// TODO: cron pruner for the tokens that don't work
+// mark in db as inactive (maybe? not right now alteast, will need to think, this is for the app to be able to fetch and show that your device is inactive)
+
 @Injectable()
 export class FcmTokenService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
