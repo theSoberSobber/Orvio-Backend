@@ -20,7 +20,7 @@ export class AuthService {
     @InjectRepository(Device) private deviceRepo: Repository<Device>,
     @InjectRepository(Session) private sessionRepo: Repository<Session>,
     @Inject('OTP_SERVICE') private readonly otpService: ClientProxy,
-    @Inject('FCM_SERVICE') private readonly fcmService: ClientProxy,
+    @Inject('FCM_TOKEN_SERVICE') private readonly fcmTokenService: ClientProxy,
   ) {}
 
   async sendOtp(phoneNumber: string) {
@@ -116,10 +116,10 @@ export class AuthService {
     // why holdup register request for fcm service right
 
     // TODO: strip relations before sending to cache to save up on cache space
-    console.log("[Auth Service] Emitting Event to FCM Service for device registration...")
-    // await this.fcmService.send('fcm.registerDevice', { device }).toPromise();
-    this.fcmService.emit('fcm.registerDevice', { device }); // fire and forget (emit) vs wait for response (send)
-    console.log("[Auth Service] Emitted Event to FCM Service for device registration...")
+    console.log("[Auth Service] Emitting Event to FCM Token Service for device registration...")
+    // await this.fcmTokenService.send('fcm.registerDevice', { device }).toPromise();
+    this.fcmTokenService.emit('fcmToken.registerDevice', { device }); // fire and forget (emit) vs wait for response (send)
+    console.log("[Auth Service] Emitted Event to FCM Token Service for device registration...")
     return { success: true };
   }
 

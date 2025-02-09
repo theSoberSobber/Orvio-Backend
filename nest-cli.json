@@ -28,6 +28,15 @@
         "tsConfigPath": "apps/backend/tsconfig.app.json"
       }
     },
+    "fcmToken": {
+      "type": "application",
+      "root": "apps/fcmToken",
+      "entryFile": "main",
+      "sourceRoot": "apps/fcmToken/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/fcmToken/tsconfig.app.json"
+      }
+    },
     "otp": {
       "type": "application",
       "root": "apps/otp",
@@ -37,13 +46,13 @@
         "tsConfigPath": "apps/otp/tsconfig.app.json"
       }
     },
-    "fcm": {
+    "service": {
       "type": "application",
-      "root": "apps/fcm",
+      "root": "apps/service",
       "entryFile": "main",
-      "sourceRoot": "apps/fcm/src",
+      "sourceRoot": "apps/service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/fcm/tsconfig.app.json"
+        "tsConfigPath": "apps/service/tsconfig.app.json"
       }
     }
   }

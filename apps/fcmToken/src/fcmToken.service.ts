@@ -3,7 +3,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
 
 @Injectable()
-export class FcmService {
+export class FcmTokenService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
   private readonly tokenSetKey = 'fcm_tokens'; // Redis Set for unique tokens

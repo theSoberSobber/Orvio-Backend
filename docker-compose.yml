@@ -69,10 +69,10 @@ services:
       - .env
     command: npm run start:dev otp
 
-  fcm-service:
+  fcm-token-service:
     build:
       context: ./
-      dockerfile: ./apps/fcm/Dockerfile
+      dockerfile: ./apps/fcmToken/Dockerfile
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -80,7 +80,7 @@ services:
         condition: service_started
     env_file:
       - .env
-    command: npm run start:dev fcm
+    command: npm run start:dev fcmToken
 
   api-gateway:
     build:
@@ -88,7 +88,7 @@ services:
       dockerfile: ./apps/backend/Dockerfile
     depends_on:
       - auth-service
-      - fcm-service
+      - fcm-token-service
     ports:
       - "3000:3000"
     env_file:

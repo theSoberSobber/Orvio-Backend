@@ -36,11 +36,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         },
       },
       {
-        name: 'FCM_SERVICE',
+        name: 'FCM_TOKEN_SERVICE',
         transport: Transport.RMQ,
         options: {
           urls: [process.env.RABBITMQ_URL as RmqUrl],
-          queue: process.env.FCM_QUEUE,
+          queue: process.env.FCM_TOKEN_QUEUE,
           queueOptions: { 
             durable: true 
           },

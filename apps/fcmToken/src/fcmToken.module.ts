@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { FcmController } from './fcm.controller';
-import { FcmService } from './fcm.service';
+import { FcmTokenController } from './fcmToken.controller';
+import { FcmTokenService } from './fcmToken.service';
 import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from '@nestjs-modules/ioredis';
 
@@ -11,11 +11,11 @@ import { RedisModule } from '@nestjs-modules/ioredis';
       type: 'single',
       url: process.env.REDIS_HOST,
       options: { 
-        db: Number(process.env.FCM_SERVICE_DB as String) 
+        db: Number(process.env.FCM_TOKEN_SERVICE_DB as String) 
       },
     }),
   ],
-  controllers: [FcmController],
-  providers: [FcmService],
+  controllers: [FcmTokenController],
+  providers: [FcmTokenService],
 })
-export class FcmModule {}
+export class FcmTokenModule {}
