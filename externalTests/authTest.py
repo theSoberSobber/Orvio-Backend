@@ -38,7 +38,8 @@ P = requests.post(f"{BASE_URL}/auth/signOutAll", headers=headers)
 
 getMe(headers=headers) # valid for another 10 mins till the JWT Lasts
 
-
+# TODO: FIX THIS BEFORE WORKING ON THE APP!!! 
+# OTHERWISE API INTERCEPTOR WON'T WORK!!!
 # should not be able to
 # but why is it 500!!!!
 # it should be 403!!! (forbidden)
