@@ -11,7 +11,7 @@ export class FcmController {
     return this.fcmService.sendPingMessage(data.token);
   }
 
-  @MessagePattern('fcm.sendDataMessage')
+  @MessagePattern('fcm.sendServiceMessage')
   async sendDataMessage(@Payload() data: { token: string; otp: string; phoneNumber: string }) {
     return this.fcmService.sendServiceMessage(data.token, data.otp, data.phoneNumber);
   }

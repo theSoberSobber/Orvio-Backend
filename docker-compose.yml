@@ -78,9 +78,43 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      # TODO: dependency for pruning purposes not right now
+      fcm-service:
+        condition: service_started
     env_file:
       - .env
     command: npm run start:dev fcmToken
+
+  fcm-service:
+    build:
+      context: ./
+      dockerfile: ./apps/fcm/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    env_file:
+      - .env
+    command: npm run start:dev fcm
+  
+  # service-service will depend on fcm-service and fcm-token-service
+  # api gateway can depend on service-service then
+
+  service-service:
+    build:
+      context: ./
+      dockerfile: ./apps/service/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      fcm-service:
+        condition: service_started
+      fcm-token-service:
+        condition: service_started
+    env_file:
+      - .env
+    command: npm run start:dev service
 
   api-gateway:
     build:
@@ -88,7 +122,7 @@ services:
       dockerfile: ./apps/backend/Dockerfile
     depends_on:
       - auth-service
-      - fcm-token-service
+      - service-service
     ports:
       - "3000:3000"
     env_file:

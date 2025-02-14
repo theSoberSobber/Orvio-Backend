@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Session } from './session.entity';
 import { Device } from './device.entity';
+import { ApiKey } from './apiKey.entity';
 
 @Entity()
 export class User {
@@ -15,4 +16,8 @@ export class User {
 
   @OneToMany(() => Device, (device) => device.user, { cascade: true })
   devices: Device[];
+
+  @OneToMany(() => ApiKey, (apiKey) => apiKey.user, { eager: true, cascade: true })
+  apiKeys: ApiKey[];
+
 }

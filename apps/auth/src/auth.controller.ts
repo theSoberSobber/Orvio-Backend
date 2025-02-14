@@ -44,5 +44,20 @@ export class AuthController {
   @MessagePattern('auth.signOutAll')
   async signOutAll(data: { userId: string }) {
     return this.authService.signOutAll(data.userId);
+  } 
+
+  @MessagePattern('auth.apiKey.createNewApiKey')
+  async createNewApiKey(data: {userId: string, name: string}){
+    return this.authService.createNewApiKey(data.userId, data.name);
+  }
+
+  @MessagePattern('auth.apiKey.getApiKeys')
+  async getAllApiKeys(data: {userId: string}){
+    return this.authService.getApiKeys(data.userId);
+  }
+
+  @MessagePattern('auth.apiKey.revokeApiKey')
+  async revokeApiKey(data: {apiKey: string}){
+    return this.authService.revokeApiKey(data.apiKey);
   }
 }

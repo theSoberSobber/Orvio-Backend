@@ -17,4 +17,10 @@ export class ServiceController {
     async verifyOtp(data: {tid: string, userInputOtp: string}){
         return await this.serviceService.send("service.verifyOtp", data).toPromise();
     }
+
+    @UseGuards(AuthGuard)
+    @Post("/ack")
+    async ack(data: {tid: string}){
+        return await this.serviceService.send("service.ack", data).toPromise();
+    }
 }

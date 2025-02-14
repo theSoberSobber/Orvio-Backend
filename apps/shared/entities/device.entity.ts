@@ -17,4 +17,16 @@ export class Device {
 
   @ManyToOne(() => User, (user) => user.devices, { onDelete: 'CASCADE' })
   user: User;
+
+  @Column({ default: 0 })
+  failedToSendAck: number;
+
+  @Column({ default: 0 })
+  sentAckNotVerified: number;
+
+  @Column({ default: 0 })
+  sentAckVerified: number;
+
+  @Column({ default: 0 })
+  totalMessagesSent: number;
 }

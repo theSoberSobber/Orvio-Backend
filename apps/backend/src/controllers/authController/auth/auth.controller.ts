@@ -55,8 +55,28 @@ export class AuthController {
 
   @UseGuards(AuthGuard)
   @Post('signoutall')
-  async signOutAll(@Body() data: { refreshToken: string; }, @Req() req){
+  async signOutAll(@Req() req){
     const userId = req.user.userId;
-    return this.authService.send('auth.signOutAll', {userId, ...data}).toPromise();
+    return this.authService.send('auth.signOutAll', {userId}).toPromise();
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('apiKey/createNew')
+  async createNewApiKey(@Body() data: { name: string; }, @Req() req){
+    const userId = req.user.userId;
+    return this.authService.send('auth.apiKey.createNewApiKey', {userId, ...data}).toPromise();
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('apiKey/getAll')
+  async getAllApiKeys(@Req() req){
+    const userId = req.user.userId;
+    return this.authService.send('auth.apiKey.getApiKeys', {userId}).toPromise();
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('apiKey/revoke')
+  async revokeApiKey(@Body() data: { apiKey: string; }){
+    return this.authService.send('auth.apiKey.revokeApiKey', data).toPromise();
   }
 }
