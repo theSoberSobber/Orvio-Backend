@@ -100,29 +100,34 @@ export class AuthService {
         throw toRpcException(new BadRequestException('Invalid user')); // 400 -> bad request, not doing notfound 404 here cus does not make sense
     }
 
+    let shouldWrite = false;
     let device = await this.deviceRepo.findOne({ where: { deviceHash } });
 
     if (!device) {
         device = this.deviceRepo.create({ deviceHash, fcmToken, user });
+        shouldWrite = true;
     } else {
         device.user = user;
+        shouldWrite = shouldWrite || (device.fcmToken!=fcmToken);
         device.fcmToken = fcmToken;
     }
 
+    shouldWrite = shouldWrite || (device.isActive!=true)
     device.isActive = true;
-    await this.deviceRepo.save(device);
+    
+    if(shouldWrite){
+      await this.deviceRepo.save(device);
+      await this.sessionRepo.update({ id: sessionId }, { device });
+      // 🔥 Emit event to FCM service
+      // emit instead of send cus async processing
+      // why holdup register request for fcm service right
 
-    await this.sessionRepo.update({ id: sessionId }, { device });
-
-    // 🔥 Emit event to FCM service
-    // emit instead of send cus async processing
-    // why holdup register request for fcm service right
-
-    // TODO: strip relations before sending to cache to save up on cache space
-    console.log("[Auth Service] Emitting Event to FCM Token Service for device registration...")
-    // await this.fcmService.send('fcm.registerDevice', { device }).toPromise();
-    this.fcmTokenService.emit('fcmToken.registerDevice', { device }); // fire and forget (emit) vs wait for response (send)
-    console.log("[Auth Service] Emitted Event to FCM Token Service for device registration...")
+      // TODO: strip relations before sending to cache to save up on cache space
+      console.log("[Auth Service] Emitting Event to FCM Token Service for device registration...")
+      // await this.fcmService.send('fcm.registerDevice', { device }).toPromise();
+      this.fcmTokenService.emit('fcmToken.registerDevice', { device }); // fire and forget (emit) vs wait for response (send)
+      console.log("[Auth Service] Emitted Event to FCM Token Service for device registration...")
+    }
     return { success: true };
   }
 
