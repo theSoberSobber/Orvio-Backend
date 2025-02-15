@@ -1,4 +1,4 @@
-import { Injectable, Inject, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, UnauthorizedException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from '../../shared/entities/user.entity';
 import { Device } from '../../shared/entities/device.entity';
@@ -7,6 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import * as jwt from 'jsonwebtoken';
 import { ApiKey } from 'apps/shared/entities/apiKey.entity';
+import { toRpcException } from 'apps/shared/rpcWrapper';
+
 // TODO: add timestamp and expiry to JWT tokens or it's 
 // useless, since it'll generate the same thing
 // everytime, it should NOT cus exp, anyways i added IAT-custom (issued at, custom cus i don't want it to interfere with the expiry logic of jwt library)
@@ -54,7 +56,7 @@ export class AuthService {
     const session = await this.sessionRepo.findOne({ where: { refreshToken }, relations: ['user'] });
   
     if (!session) {
-      throw new ForbiddenException('Invalid refresh token'); // Tell client to sign out
+      throw toRpcException(new ForbiddenException('Invalid refresh token')); // Tell client to sign out
     }
   
     const accessToken = jwt.sign({ userId: session.user.id, iatCustom: Date.now().toString(), sessionId: session.id }, process.env.JWT_SECRET!, { expiresIn: Number(process.env.JWT_EXPIRES_IN) });
@@ -65,7 +67,7 @@ export class AuthService {
     const session = await this.sessionRepo.findOne({ where: { id: sessionId }, relations: ['user', 'device'] });
   
     if (!session) {
-      throw new ForbiddenException('Invalid session');
+      throw toRpcException(new ForbiddenException('Invalid session'));
     }
   
     await this.sessionRepo.delete({ id: sessionId });
@@ -90,12 +92,12 @@ export class AuthService {
     // otherwise jwt lasts for a while
     const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
     if (!session) {
-        throw new ForbiddenException('Session not found');
+        throw toRpcException(new ForbiddenException('Session not found'));
     }
 
     const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['devices'] });
     if (!user) {
-        throw new UnauthorizedException('Invalid user');
+        throw toRpcException(new BadRequestException('Invalid user')); // 400 -> bad request, not doing notfound 404 here cus does not make sense
     }
 
     let device = await this.deviceRepo.findOne({ where: { deviceHash } });
@@ -131,12 +133,12 @@ export class AuthService {
     // 
     // const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
     // if (!session) {
-    //     throw new ForbiddenException('Session not found');
+    //     throw toRpcException(new ForbiddenException('Session not found'));
     // }
 
-    const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['devices', 'sessions'] });
+    const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['devices', 'sessions', 'apiKeys'] });
     if (!user){
-      throw new UnauthorizedException('Invalid user');
+      throw toRpcException(new UnauthorizedException('Invalid user'));
     }
     return user;
   }

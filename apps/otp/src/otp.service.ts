@@ -1,6 +1,7 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
+import { toRpcException } from 'apps/shared/rpcWrapper';
 
 // TODO: proper app logger like pino/winston
 // Visualize in datadog/sentry
@@ -34,12 +35,13 @@ export class OtpService {
       // somehow a 401 is causing a 500? it should really go to controller and handle itself
       // but idk maybe cus a microservice is calling a microservice
       // it's not propagating to the gateway controller somehow
-      throw new UnauthorizedException('OTP expired or invalid'); // Proper error
+      throw toRpcException(new BadRequestException('OTP expired or invalid')); // Proper error, 400 makes sense here or 404 not found maybe
     }
   
     const { otp: storedOtp, phone } = JSON.parse(data);
     if (storedOtp.toString() !== userInputOtp) {
-      throw new UnauthorizedException('Incorrect OTP'); // Proper error
+      // throw new UnauthorizedException('Incorrect OTP'); // Proper error
+      return null;
     }
   
     await this.redis.del(`otp:${transactionId}`); // OTP should be one-time use
