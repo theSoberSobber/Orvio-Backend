@@ -8,6 +8,7 @@ import { Device } from '../../shared/entities/device.entity';
 import { Session } from '../../shared/entities/session.entity';
 import { RmqUrl } from '@nestjs/microservices/external/rmq-url.interface';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ApiKey } from 'apps/shared/entities/apiKey.entity';
 
 @Module({
   imports: [
@@ -19,10 +20,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      entities: [User, Device, Session],
+      entities: [User, Device, Session, ApiKey],
       synchronize: true, // set to false in production
     }),
-    TypeOrmModule.forFeature([User, Device, Session]),
+    TypeOrmModule.forFeature([User, Device, Session, ApiKey]),
     ClientsModule.register([
       {
         name: 'OTP_SERVICE',

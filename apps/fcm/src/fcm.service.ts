@@ -38,7 +38,7 @@ export class FcmService {
         timestamp: new Date().toISOString(),
       },
       android: {
-        priority: 'high',
+        priority: 'high' as 'high',
       },
     };
     return this.sendMessage(message);
@@ -70,7 +70,7 @@ export class FcmService {
         timestamp: new Date().toISOString(),
       },
       android: {
-        priority: 'high',
+        priority: 'high' as 'high',
       },
     };
 

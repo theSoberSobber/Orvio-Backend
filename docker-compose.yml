@@ -79,8 +79,8 @@ services:
       redis:
         condition: service_started
       # TODO: dependency for pruning purposes not right now
-      fcm-service:
-        condition: service_started
+      # fcm-service:
+      #   condition: service_started
     env_file:
       - .env
     command: npm run start:dev fcmToken

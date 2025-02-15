@@ -5,6 +5,11 @@ import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { RmqUrl } from '@nestjs/microservices/external/rmq-url.interface';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Session } from 'apps/shared/entities/session.entity';
+import { User } from 'apps/shared/entities/user.entity';
+import { Device } from 'apps/shared/entities/device.entity';
+import { ApiKey } from 'apps/shared/entities/apiKey.entity';
 
 @Module({
   imports: [
@@ -13,6 +18,17 @@ import { RmqUrl } from '@nestjs/microservices/external/rmq-url.interface';
     // configs and new queues that need to be setup
     // need to fix a lot of things rn
     ConfigModule.forRoot(),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.POSTGRES_HOST,
+      port: Number(process.env.POSTGRES_PORT),
+      username: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.POSTGRES_DB,
+      entities: [User, Device, ApiKey, Session],
+      synchronize: true, // set to false in production
+    }),
+    TypeOrmModule.forFeature([User, Device, ApiKey, Session]),
     RedisModule.forRoot({
       type: 'single',
       url: process.env.REDIS_HOST,
@@ -38,7 +54,7 @@ import { RmqUrl } from '@nestjs/microservices/external/rmq-url.interface';
         options: {
           urls: [process.env.RABBITMQ_URL as RmqUrl],
           queue: process.env.FCM_TOKEN_QUEUE,
-          queueOptions: { 
+          queueOptions: {
             durable: true 
           },
         },

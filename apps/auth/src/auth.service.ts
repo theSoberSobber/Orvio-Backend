@@ -39,12 +39,12 @@ export class AuthService {
       await this.userRepo.save(user);
     }
   
-    const refreshToken = jwt.sign({ userId: user.id, iatCustom: Date.now().toString() }, process.env.REFRESH_TOKEN_SECRET);
+    const refreshToken = jwt.sign({ userId: user.id, iatCustom: Date.now().toString() }, process.env.REFRESH_TOKEN_SECRET!);
 
     const session = this.sessionRepo.create({ refreshToken, user });
     await this.sessionRepo.save(session);
 
-    const accessToken = jwt.sign({ userId: user.id, iatCustom: Date.now().toString(), sessionId: session.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const accessToken = jwt.sign({ userId: user.id, iatCustom: Date.now().toString(), sessionId: session.id }, process.env.JWT_SECRET!, { expiresIn: Number(process.env.JWT_EXPIRES_IN) });
   
     return { refreshToken, accessToken };
   }  
@@ -57,7 +57,7 @@ export class AuthService {
       throw new ForbiddenException('Invalid refresh token'); // Tell client to sign out
     }
   
-    const accessToken = jwt.sign({ userId: session.user.id, iatCustom: Date.now().toString(), sessionId: session.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const accessToken = jwt.sign({ userId: session.user.id, iatCustom: Date.now().toString(), sessionId: session.id }, process.env.JWT_SECRET!, { expiresIn: Number(process.env.JWT_EXPIRES_IN) });
     return { accessToken };
   }  
 
@@ -150,7 +150,7 @@ export class AuthService {
 
     const refreshToken = jwt.sign(
         { userId: user.id, iatCustom: Date.now().toString() },
-        process.env.REFRESH_TOKEN_SECRET
+        process.env.REFRESH_TOKEN_SECRET!
     );
 
     const session = this.sessionRepo.create({ refreshToken, user });

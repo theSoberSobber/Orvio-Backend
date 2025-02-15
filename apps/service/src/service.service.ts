@@ -23,7 +23,6 @@ export class ServiceService {
   private readonly intervals = new Map<string, NodeJS.Timeout>();
 
   constructor(
-    @InjectRepository(Device) private readonly deviceRepo: Repository<Device>,
     @Inject('FCM_TOKEN_SERVICE') private readonly fcmTokenService: ClientProxy,
     @Inject('FCM_SERVICE') private readonly fcmService: ClientProxy,
     @InjectRepository(Session) private sessionRepo: Repository<Session>,
