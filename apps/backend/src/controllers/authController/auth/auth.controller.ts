@@ -15,12 +15,12 @@ export class AuthController {
 
   // singup is a bit misleading, since this is also
   // the only way to login, but oh well
-  @Post('signup')
+  @Post('sendOtp')
   async signUp(@Body() data: { phoneNumber: string }) {
-    return this.authService.send('auth.signUp', data).toPromise();
+    return this.authService.send('auth.sendOtp', data).toPromise();
   }
 
-  @Post('verify-otp')
+  @Post('verifyOtp')
   async verifyOtp(@Body() data: { transactionId: string; userInputOtp: string }) {
     return this.authService.send('auth.verify_otp', data).toPromise();
   }

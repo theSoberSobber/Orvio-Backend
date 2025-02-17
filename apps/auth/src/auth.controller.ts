@@ -11,7 +11,7 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @MessagePattern('auth.signUp')
+  @MessagePattern('auth.sendOtp')
   async signup(data: { phoneNumber: string }) {
     return this.authService.sendOtp(data.phoneNumber);
   }
