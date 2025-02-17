@@ -12,12 +12,13 @@ export class FcmController {
   }
 
   @MessagePattern('fcm.sendServiceMessage')
-  async sendDataMessage(@Payload() data: { token: string; otp: string; phoneNumber: string }) {
-    return this.fcmService.sendServiceMessage(data.token, data.otp, data.phoneNumber);
+  async sendDataMessage(@Payload() data: { fcmToken: string; otp: string; phoneNumber: string; tid: string }) {
+    console.log("Message recieved at the fcm service with data...", data);
+    return this.fcmService.sendServiceMessage(data.fcmToken, data.otp, data.phoneNumber, data.tid);
   }
 
   @MessagePattern('fcm.sendPushNotification')
-  async sendPushNotification(@Payload() data: { token: string; message: string }) {
-    return this.fcmService.sendPushNotification(data.token, data.message);
+  async sendPushNotification(@Payload() data: { fcmToken: string; message: string }) {
+    return this.fcmService.sendPushNotification(data.fcmToken, data.message);
   }
 }

@@ -97,7 +97,9 @@ export class AuthService {
 
     const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['devices'] });
     if (!user) {
-        throw toRpcException(new BadRequestException('Invalid user')); // 400 -> bad request, not doing notfound 404 here cus does not make sense
+        throw toRpcException(new ForbiddenException('Invalid user')); 
+        // 400 -> bad request, not doing notfound 404 here cus does not make sense
+        // UPDATE: forbidden is fine, the user should signout if things are bad and they can't register
     }
 
     let shouldWrite = false;

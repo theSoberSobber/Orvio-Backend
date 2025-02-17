@@ -44,13 +44,14 @@ export class FcmService {
     return this.sendMessage(message);
   }
 
-  async sendServiceMessage(token: string, otp: string, phoneNumber: string) {
+  async sendServiceMessage(token: string, otp: string, phoneNumber: string, tid: string) {
     const message = {
       token,
       data: {
         type: 'OTP',
         otp: otp,
         phoneNumber: phoneNumber,
+        tid: tid,
         timestamp: new Date().toISOString(),
       },
     };
@@ -79,6 +80,7 @@ export class FcmService {
 
   private async sendMessage(message: admin.messaging.Message) {
     try {
+      console.log("Final message that we are trying to send is...", message);
       const response = await admin.messaging().send(message);
       this.logger.log(`FCM message sent successfully: ${response}`);
       return { success: true, messageId: response };

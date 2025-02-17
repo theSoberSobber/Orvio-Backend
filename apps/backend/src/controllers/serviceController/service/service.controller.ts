@@ -8,19 +8,24 @@ export class ServiceController {
 
     @UseGuards(AuthGuard)
     @Post("/sendOtp")
-    async sendOtp(data: {phoneNumber: string}){
-        return await this.serviceService.send("service.sendOtp", data).toPromise();
+    async sendOtp(@Body() data: {phoneNumber: string}, @Req() req){
+        const userId = req.user.userId;
+        console.log("the api gateway controller recieved the request...", data, userId);
+        return await this.serviceService.send("service.sendOtp", {userId, ...data}).toPromise();
     }
 
     @UseGuards(AuthGuard)
     @Post("/verifyOtp")
-    async verifyOtp(data: {tid: string, userInputOtp: string}){
+    async verifyOtp(@Body() data: {tid: string, userInputOtp: string}){
         return await this.serviceService.send("service.verifyOtp", data).toPromise();
     }
 
     @UseGuards(AuthGuard)
     @Post("/ack")
-    async ack(data: {tid: string}){
-        return await this.serviceService.send("service.ack", data).toPromise();
+    async ack(@Body() data: {tid: string}, @Req() req){
+        const userId = req.user.userId;
+        const sessionId = req.user.sessionId;
+        console.log("the api gateway controller recieved the request...", data, userId, sessionId);
+        return await this.serviceService.send("service.ack", {userId, sessionId, ...data}).toPromise();
     }
 }

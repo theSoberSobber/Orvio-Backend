@@ -28,7 +28,7 @@ export class FcmTokenService {
     const deviceData = await this.redis.hget(this.deviceMapKey, randomToken);
     if (!deviceData) return { device: null };
 
-    const device = JSON.parse(deviceData);
+    const device = (await JSON.parse(deviceData)).device;
     console.log(`Retrieved FCM Token: ${device.fcmToken}`); // Debugging log
 
     return { device };

@@ -48,7 +48,7 @@ export class ServiceService {
   }
 
   private async schedule(tid: string, otp: string, phoneNumber: string, reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string) {
-    const interval = setInterval(async () => {
+    const businessLogic = async () => {
       // a check and set that gets called when ttl is up
       // so now this atomic transaction will:
         // check if running the first time (both otp and depth keys don't exist)
@@ -58,8 +58,14 @@ export class ServiceService {
         // if all this not done then yea set 
           // should set the new device and return 1 (side effects are then trying to send actually, do your side effects yourself)
 
+      const timestamp = new Date().toLocaleString();
+      console.log(`[${timestamp}] Starting business logic...`);
 
-      const { device: newDevice } = await this.fcmTokenService.send({ cmd: 'fcm.getToken' }, {}).toPromise() as { device: Device };
+      console.log("trying to get a new device... ");
+
+      const { device: newDevice } = await this.fcmTokenService.send('fcmToken.getToken', {}).toPromise() as { device: Device };
+
+      console.log("this device was chosen....", newDevice);
 
       // all three otp keys are supposed to be deleted/added in sync
       // stay in a consistent state
@@ -108,10 +114,12 @@ export class ServiceService {
       //  assigned device id
       //  acknowledged or not (0/1)
       //  max otp depth
+      console.log("Evaluating Lua script now...'");
       const result = await this.redis.eval(luaScript, 1, tid, otp, newDevice.id, 0, this.maxOtpDepth);
+      console.log("Result of lua script...", result);
   
       if (result === 0 || result === -1) {
-        clearInterval(interval);
+        clearInterval(this.intervals.get(tid));
         this.intervals.delete(tid);
 
         if (reportingCustomerWebhook) {
@@ -139,17 +147,20 @@ export class ServiceService {
       let success = false;
       // try atleast 3 times to get a device, i
       // ideally the retry time should be enough to exhaust the TTl
+
+      console.log("entering while loop of trying to send message...");
       while(!success && cnt<3){
-        const response = await this.fcmService.send(
-          { cmd: 'fcm.sendServiceMessage' }, 
-          { fcmToken: newDevice.fcmToken, otp, phoneNumber, tid }
-        ).toPromise();
+        console.log("Trying to send message using fcmService now with this fcm token....", newDevice, typeof(newDevice), newDevice.fcmToken);
+        const response = await this.fcmService.send('fcm.sendServiceMessage', { fcmToken: newDevice.fcmToken, otp, phoneNumber, tid }).toPromise();
         if(response.success) success = true;
-        else await delay(5000);
+        else await delay(5000); // ttl is 20 so 5 for safety so 20 - 5 = 15 so 15/3 = 5
         cnt++;
       }
-    }, this.ttl * 1000);
-  
+    };
+    
+    // must not await this, for set interval to be proper
+    businessLogic(); // first run manual to make it run without waiting for ttl, not awaiting this because 
+    const interval = setInterval(businessLogic, this.ttl * 1000);
     this.intervals.set(tid, interval);
   }
 
