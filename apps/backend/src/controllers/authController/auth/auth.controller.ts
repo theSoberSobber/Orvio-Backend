@@ -68,7 +68,7 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('apiKey/getAll')
+  @Get('apiKey/getAll')
   async getAllApiKeys(@Req() req){
     const userId = req.user.userId;
     return this.authService.send('auth.apiKey.getApiKeys', {userId}).toPromise();

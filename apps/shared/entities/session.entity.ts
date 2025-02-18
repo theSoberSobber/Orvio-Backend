@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
 import { User } from './user.entity';
 import { Device } from './device.entity';
+import { ApiKey } from './apiKey.entity';
 
 @Entity()
 export class Session {
@@ -16,4 +17,7 @@ export class Session {
   @ManyToOne(() => Device, { nullable: true, onDelete: 'SET NULL' }) // Optional device link
   @JoinColumn({ name: 'deviceId' })
   device?: Device;
+
+  @OneToOne(() => ApiKey, (apiKey) => apiKey.session, { nullable: true }) // Make it nullable
+  apiKey?: ApiKey;
 }

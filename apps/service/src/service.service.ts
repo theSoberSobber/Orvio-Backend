@@ -61,11 +61,11 @@ export class ServiceService {
       const timestamp = new Date().toLocaleString();
       console.log(`[${timestamp}] Starting business logic...`);
 
-      console.log("trying to get a new device... ");
+      // console.log("trying to get a new device... ");
 
       const { device: newDevice } = await this.fcmTokenService.send('fcmToken.getToken', {}).toPromise() as { device: Device };
 
-      console.log("this device was chosen....", newDevice);
+      // console.log("this device was chosen....", newDevice);
 
       // all three otp keys are supposed to be deleted/added in sync
       // stay in a consistent state
@@ -87,6 +87,11 @@ export class ServiceService {
           redis.call('SET', otpKeyAcknowledged, ARGV[3])
           redis.call('SET', depthKey, 1)
           return 1
+        end
+
+        local alreadyAcknowledged = redis.call('GET', otpKeyAcknowledged)
+        if alreadyAcknowledged and tonumber(alreadyAcknowledged) == 1 then
+            return 0 -- Already acknowledged
         end
         
         if depthExists and not otpExists then
@@ -114,9 +119,9 @@ export class ServiceService {
       //  assigned device id
       //  acknowledged or not (0/1)
       //  max otp depth
-      console.log("Evaluating Lua script now...'");
+      // console.log("Evaluating Lua script now...'");
       const result = await this.redis.eval(luaScript, 1, tid, otp, newDevice.id, 0, this.maxOtpDepth);
-      console.log("Result of lua script...", result);
+      // console.log("Result of lua script in sendOtp...", result);
   
       if (result === 0 || result === -1) {
         clearInterval(this.intervals.get(tid));
@@ -141,16 +146,16 @@ export class ServiceService {
 
       // side effects of return 1, that is do again action, (send the otp already wrote the device above)
       // already got device let's just send now
-      this.logger.warn(`No ack received for OTP ${tid}, retrying with a different device...`);
+      // this.logger.warn(`No ack received for OTP ${tid}, retrying with a different device...`);
 
       let cnt=0;
       let success = false;
       // try atleast 3 times to get a device, i
       // ideally the retry time should be enough to exhaust the TTl
 
-      console.log("entering while loop of trying to send message...");
+      // console.log("entering while loop of trying to send message...");
       while(!success && cnt<3){
-        console.log("Trying to send message using fcmService now with this fcm token....", newDevice, typeof(newDevice), newDevice.fcmToken);
+        // console.log("Trying to send message using fcmService now with this fcm token....", newDevice, typeof(newDevice), newDevice.fcmToken);
         const response = await this.fcmService.send('fcm.sendServiceMessage', { fcmToken: newDevice.fcmToken, otp, phoneNumber, tid }).toPromise();
         if(response.success) success = true;
         else await delay(5000); // ttl is 20 so 5 for safety so 20 - 5 = 15 so 15/3 = 5
@@ -166,6 +171,8 @@ export class ServiceService {
 
   async ack(userIdThatFullfilled: string, tid: string, sessionId: string): Promise<{ success: boolean; status: string }> {
     // Fetch deviceId from sessionId
+
+    // console.log("Inside Ack Function in the Service Rn...");
     const session = await this.sessionRepo.findOne({
         where: { id: sessionId },
         relations: ['device'],
@@ -202,6 +209,8 @@ export class ServiceService {
     `;
 
     const result = await this.redis.eval(luaScript, 1, tid, deviceId);
+
+    // console.log("the result of the lua script is... (should be 1)... ", result);
 
     if (result === 1) {
         return { success: true, status: 'acknowledged' };

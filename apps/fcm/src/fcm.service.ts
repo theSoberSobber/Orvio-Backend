@@ -80,7 +80,7 @@ export class FcmService {
 
   private async sendMessage(message: admin.messaging.Message) {
     try {
-      console.log("Final message that we are trying to send is...", message);
+      // console.log("Final message that we are trying to send is...", message);
       const response = await admin.messaging().send(message);
       this.logger.log(`FCM message sent successfully: ${response}`);
       return { success: true, messageId: response };
