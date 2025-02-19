@@ -199,4 +199,71 @@ export class AuthService {
     return { success: true };
   }
 
+  // TODO: 
+  // Stats related methods below: 
+  //    TODO: really shouldn't be here :((, make a stats service bhai
+  async getStats(userId: string, sessionId: string) {
+    // First verify the session exists and belongs to the user
+    const session = await this.sessionRepo.findOne({ 
+      where: { id: sessionId },
+      relations: ['device', 'user']
+    });
+  
+    if (!session || session.user.id !== userId) {
+      throw toRpcException(new ForbiddenException('Invalid session'));
+    }
+  
+    // Provider Stats (Message Sending)
+    const currentDeviceStats = session.device ? {
+      failedToSendAck: session.device.failedToSendAck,
+      sentAckNotVerified: session.device.sentAckNotVerified,
+      sentAckVerified: session.device.sentAckVerified,
+      totalMessagesSent: session.device.totalMessagesSent
+    } : null;
+  
+    const allDevices = await this.deviceRepo.find({
+      where: { user: { id: userId } }
+    });
+  
+    const allDevicesStats = {
+      failedToSendAck: allDevices.reduce((sum, device) => sum + device.failedToSendAck, 0),
+      sentAckNotVerified: allDevices.reduce((sum, device) => sum + device.sentAckNotVerified, 0),
+      sentAckVerified: allDevices.reduce((sum, device) => sum + device.sentAckVerified, 0),
+      totalMessagesSent: allDevices.reduce((sum, device) => sum + device.totalMessagesSent, 0),
+      totalDevices: allDevices.length,
+      activeDevices: allDevices.filter(device => device.isActive).length
+    };
+  
+    // Consumer Stats (API Key Usage)
+    const apiKeys = await this.apiKeyRepo.find({
+      where: { user: { id: userId } },
+      relations: ['session']
+    });
+  
+    const apiKeyDetailedStats = apiKeys.map(key => ({
+      name: key.name,
+      createdAt: key.createdAt,
+      lastUsed: key.lastUsed,
+      refreshToken: key.session.refreshToken
+    }));
+  
+    const apiKeyAggregateStats = {
+      totalKeys: apiKeys.length,
+      activeKeys: apiKeys.filter(key => !key.lastUsed || (new Date().getTime() - key.lastUsed.getTime()) < 30 * 24 * 60 * 60 * 1000).length, // Active in last 30 days
+      oldestKey: apiKeys.length > 0 ? Math.min(...apiKeys.map(key => key.createdAt.getTime())) : null,
+      newestKey: apiKeys.length > 0 ? Math.max(...apiKeys.map(key => key.createdAt.getTime())) : null,
+      lastUsedKey: apiKeys.length > 0 ? Math.max(...apiKeys.map(key => key.lastUsed ? key.lastUsed.getTime() : 0)) : null
+    };
+  
+    return {
+      provider: {
+        currentDevice: currentDeviceStats,
+        allDevices: allDevicesStats
+      },
+      consumer: {
+        aggregate: apiKeyAggregateStats,
+        keys: apiKeyDetailedStats
+      }
+    };
+  }
 }

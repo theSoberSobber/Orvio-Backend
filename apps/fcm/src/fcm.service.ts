@@ -44,7 +44,7 @@ export class FcmService {
     return this.sendMessage(message);
   }
 
-  async sendServiceMessage(token: string, otp: string, phoneNumber: string, tid: string) {
+  async sendServiceMessage(token: string, otp: string, phoneNumber: string, tid: string, timestamp: string) {
     const message = {
       token,
       data: {
@@ -52,7 +52,7 @@ export class FcmService {
         otp: otp,
         phoneNumber: phoneNumber,
         tid: tid,
-        timestamp: new Date().toISOString(),
+        timestamp: timestamp,
       },
     };
 

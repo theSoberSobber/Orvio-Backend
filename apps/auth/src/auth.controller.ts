@@ -60,4 +60,9 @@ export class AuthController {
   async revokeApiKey(data: {apiKey: string}){
     return this.authService.revokeApiKey(data.apiKey);
   }
+
+  @MessagePattern('auth.stats.getStatsComplete')
+  async getStats(data: { userId: string; sessionId: string }) {
+    return this.authService.getStats(data.userId, data.sessionId);
+  }
 }

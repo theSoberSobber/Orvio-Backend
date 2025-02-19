@@ -79,4 +79,12 @@ export class AuthController {
   async revokeApiKey(@Body() data: { apiKey: string; }){
     return this.authService.send('auth.apiKey.revokeApiKey', data).toPromise();
   }
+
+  @UseGuards(AuthGuard)
+  @Get('stats')
+  async getAllStats(@Req() req){
+    const userId = req.user.userId;
+    const sessionId = req.user.sessionId;
+    return this.authService.send('auth.stats.getStatsComplete', { userId, sessionId }).toPromise();
+  }
 }

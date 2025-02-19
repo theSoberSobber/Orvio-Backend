@@ -43,11 +43,12 @@ export class ServiceService {
     
     // data that doesn't really change otpDetails
     // await this.redis.set(`otpDetails:${tid}`, JSON.stringify(transactionData));
-    this.schedule(tid, otp, phoneNumber, reportingCustomerWebhook, reportingCustomerWebhookSecret);
+    const timestamp = new Date().toISOString();
+    this.schedule(tid, otp, phoneNumber, timestamp, reportingCustomerWebhook, reportingCustomerWebhookSecret);
     return { tid };
   }
 
-  private async schedule(tid: string, otp: string, phoneNumber: string, reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string) {
+  private async schedule(tid: string, otp: string, phoneNumber: string, timestamp: string,reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string) {
     const businessLogic = async () => {
       // a check and set that gets called when ttl is up
       // so now this atomic transaction will:
@@ -58,8 +59,8 @@ export class ServiceService {
         // if all this not done then yea set 
           // should set the new device and return 1 (side effects are then trying to send actually, do your side effects yourself)
 
-      const timestamp = new Date().toLocaleString();
-      console.log(`[${timestamp}] Starting business logic...`);
+      const internalTimestamp = new Date().toLocaleString();
+      console.log(`[${internalTimestamp}] Starting business logic...`);
 
       // console.log("trying to get a new device... ");
 
@@ -156,7 +157,7 @@ export class ServiceService {
       // console.log("entering while loop of trying to send message...");
       while(!success && cnt<3){
         // console.log("Trying to send message using fcmService now with this fcm token....", newDevice, typeof(newDevice), newDevice.fcmToken);
-        const response = await this.fcmService.send('fcm.sendServiceMessage', { fcmToken: newDevice.fcmToken, otp, phoneNumber, tid }).toPromise();
+        const response = await this.fcmService.send('fcm.sendServiceMessage', { fcmToken: newDevice.fcmToken, otp, phoneNumber, tid, timestamp }).toPromise();
         if(response.success) success = true;
         else await delay(5000); // ttl is 20 so 5 for safety so 20 - 5 = 15 so 15/3 = 5
         cnt++;
