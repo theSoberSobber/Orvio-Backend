@@ -11,9 +11,14 @@ services:
       - .env
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 250M
+          cpus: "0.35"
 
   postgres:
     image: postgres:13-alpine
@@ -27,7 +32,12 @@ services:
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+          cpus: "0.30"
 
   redis:
     image: redis:alpine
@@ -39,6 +49,11 @@ services:
       - .env
     volumes:
       - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+          cpus: "0.15"
 
   auth-service:
     build:
@@ -56,6 +71,11 @@ services:
     env_file:
       - .env
     command: npm run start:dev auth
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+          cpus: "0.20"
 
   otp-service:
     build:
@@ -69,6 +89,11 @@ services:
     env_file:
       - .env
     command: npm run start:dev otp
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+          cpus: "0.15"
 
   fcm-token-service:
     build:
@@ -79,12 +104,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-      # TODO: dependency for pruning purposes not right now
-      # fcm-service:
-      #   condition: service_started
     env_file:
       - .env
     command: npm run start:dev fcmToken
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+          cpus: "0.15"
 
   fcm-service:
     build:
@@ -96,9 +123,11 @@ services:
     env_file:
       - .env
     command: npm run start:dev fcm
-  
-  # service-service will depend on fcm-service and fcm-token-service
-  # api gateway can depend on service-service then
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+          cpus: "0.15"
 
   service-service:
     build:
@@ -116,6 +145,11 @@ services:
     env_file:
       - .env
     command: npm run start:dev service
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+          cpus: "0.20"
 
   api-gateway:
     build:
@@ -129,7 +163,12 @@ services:
     env_file:
       - .env
     command: npm run start:dev backend
-  
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+          cpus: "0.20"
+
 volumes:
   postgres_data:
     driver: local
