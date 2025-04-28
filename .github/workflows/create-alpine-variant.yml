@@ -1,10 +1,10 @@
 name: Create Alpine Variant
 
 on:
+  workflow_dispatch:
   push:
     branches:
-      - ${{ github.ref_name }}
-  workflow_dispatch:
+      - monolith-migration
 
 jobs:
   create-alpine-variant:
@@ -12,178 +12,93 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Full history to make branching reliable
-        
-      - name: Get branch name
-        id: branch-name
-        run: echo "branch_name=${{ github.ref_name }}-alpine" >> $GITHUB_OUTPUT
-        
+      
       - name: Create Alpine branch
         run: |
           git config --global user.name 'GitHub Actions Bot'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -b monolith-migration-alpine
           
-          # Check if branch already exists
-          if git ls-remote --heads origin ${{ steps.branch-name.outputs.branch_name }} | grep -q ${{ steps.branch-name.outputs.branch_name }}; then
-            echo "Branch ${{ steps.branch-name.outputs.branch_name }} already exists, updating it"
-            git fetch origin ${{ steps.branch-name.outputs.branch_name }}
-            git checkout ${{ steps.branch-name.outputs.branch_name }}
-            git reset --hard origin/${{ github.ref_name }}
-          else
-            echo "Creating new branch ${{ steps.branch-name.outputs.branch_name }}"
-            git checkout -b ${{ steps.branch-name.outputs.branch_name }}
-          fi
-          
-      - name: Update docker-compose.yml with Alpine variants
+      - name: Update Docker images in docker-compose.yml
         run: |
-          # Create a backup of the original file
-          cp docker-compose.yml docker-compose.yml.backup
+          # Update postgres image - target the image: line specifically
+          sed -i 's/image: postgres:13/image: postgres:13-alpine/g' docker-compose.yml
           
-          # Use sed to replace image tags with Alpine variants
-          # Replace postgres:13 with postgres:13-alpine
-          sed -i 's/postgres:13/postgres:13-alpine/g' docker-compose.yml
+          # Update redis image - target the image: line specifically 
+          sed -i 's/image: redis:6/image: redis:alpine/g' docker-compose.yml
           
-          # Replace redis:6 with redis:alpine
-          sed -i 's/redis:6/redis:alpine/g' docker-compose.yml
-          
-          # For dpage/pgadmin4, we'll keep it as is since there's no official Alpine variant
-          
-          # For redislabs/redisinsight, we'll keep it as is since there's no official Alpine variant
-          
-          # Print the diff for logging
-          echo "Changes made to docker-compose.yml:"
-          diff docker-compose.yml.backup docker-compose.yml || true
+          # Show changes
+          git diff docker-compose.yml
       
-      - name: Find and update all Dockerfiles
+      - name: Remove pgadmin and redisinsight services
         run: |
-          # Find all Dockerfiles in the repo
-          find . -name "Dockerfile" -type f | while read dockerfile; do
-            echo "Processing $dockerfile"
-            cp "$dockerfile" "$dockerfile.backup"
-            
-            # Update base image to Alpine variant if it's a Node image
-            sed -i 's/FROM node:.*/FROM node:18-alpine/g' "$dockerfile"
-            
-            # Check if any changes were made
-            if ! diff "$dockerfile.backup" "$dockerfile" > /dev/null; then
-              echo "Updated $dockerfile to use Alpine variant"
-              diff "$dockerfile.backup" "$dockerfile" || true
-            else
-              echo "No changes needed for $dockerfile"
-            fi
-          done
+          echo "Original docker-compose.yml content:"
+          cat docker-compose.yml
+          
+          # Create a new docker-compose.yml with awk to remove pgadmin, redisinsight, and redisinsight_data volume
+          awk '
+          BEGIN { skip = 0; service_level = 0; }
+          
+          # Skip entire pgadmin and redisinsight service blocks
+          /^  pgadmin:/ { skip = 1; next; }
+          /^  redisinsight:/ { skip = 1; next; }
+          
+          # Reset skip when we hit the next service at same indentation level
+          skip == 1 && /^  [a-zA-Z]/ { skip = 0; }
+          
+          # Skip the redisinsight_data volume and its contents
+          /^  redisinsight_data:/ { skip = 1; next; }
+          
+          # Reset skip for volumes when we hit the next volume or the end of volumes section
+          skip == 1 && (/^  [a-zA-Z]/ || /^[a-zA-Z]/) { skip = 0; }
+          
+          # Print lines that are not skipped
+          skip == 0 { print $0; }
+          ' docker-compose.yml > docker-compose.yml.new
+          
+          # Check if anything changed
+          if ! diff -q docker-compose.yml docker-compose.yml.new > /dev/null; then
+            echo "Changes detected, updating docker-compose.yml"
+            mv docker-compose.yml.new docker-compose.yml
+          else
+            echo "No changes detected"
+            rm docker-compose.yml.new
+          fi
+          
+          echo "Updated docker-compose.yml content:"
+          cat docker-compose.yml
+          
+          # Show diff
+          git diff docker-compose.yml
       
-      - name: Add Alpine benefits to README
+      - name: Update all Dockerfiles to use Alpine
         run: |
-          # Check if README exists
-          README_FILE=""
-          if [ -f "README.md" ]; then
-            README_FILE="README.md"
-          elif [ -f "readme.md" ]; then
-            README_FILE="readme.md"
-          else
-            echo "Creating README.md"
-            README_FILE="README.md"
-            touch $README_FILE
+          # Inspect the Dockerfiles
+          echo "Found Dockerfiles:"
+          find . -type f -name "Dockerfile" -exec echo {} \;
+          
+          # Debug: Print content of each Dockerfile
+          find . -type f -name "Dockerfile" -exec cat {} \;
+          
+          # Try multiple sed patterns to ensure we catch all variations
+          find . -type f -name "Dockerfile" -exec sed -i 's/FROM node\s*$/FROM node:alpine/g' {} \;
+          find . -type f -name "Dockerfile" -exec sed -i 's/FROM node /FROM node:alpine /g' {} \;
+          find . -type f -name "Dockerfile" -exec sed -i 's/FROM node$/FROM node:alpine/g' {} \;
+          find . -type f -name "Dockerfile" -exec sed -i 's/FROM node:/FROM node:alpine/g' {} \;
+          
+          # Force update if needed by directly editing the main Dockerfile 
+          if [ -f "apps/backend/Dockerfile" ]; then
+            sed -i '1s/.*/FROM node:alpine/' apps/backend/Dockerfile
+            echo "Directly updated apps/backend/Dockerfile"
           fi
           
-          # Check if Alpine section already exists
-          if grep -q "## Alpine Variant" "$README_FILE"; then
-            echo "Alpine section already exists in README"
-          else
-            # Create Alpine section and append to README
-            cat >> "$README_FILE" << 'EOF'
-
-## Alpine Variant
-
-This project includes an Alpine variant that uses lightweight Docker images to improve performance:
-
-### Benefits of Alpine Images
-
-- **Smaller Image Size**: Alpine-based images are typically 2-3x smaller than their Debian/Ubuntu counterparts
-- **Improved Security**: Smaller attack surface with fewer packages installed
-- **Faster Download Times**: Smaller images download faster during deployments
-- **Better Resource Utilization**: Lower memory footprint in container environments
-
-### Alpine Image Sizes Comparison
-
-| Image | Standard Size | Alpine Size | Reduction |
-|-------|--------------|-------------|-----------|
-| Node.js | ~1GB | ~200MB | ~80% |
-| PostgreSQL | ~400MB | ~230MB | ~40% |
-| Redis | ~150MB | ~40MB | ~70% |
-
-To use the Alpine variant, check out the `-alpine` branch of this repository or switch to it in your docker-compose.yml.
-EOF
-
-            echo "Added Alpine benefits section to $README_FILE"
-          fi
-          
-      - name: Update environment variables for Alpine compatibility
-        run: |
-          # Some Alpine images might need additional environment variables or configurations
-          # For example, adding tzdata for timezone support
-          
-          # Check if we need to modify any other configuration files
-          if [ -f "docker-compose.yml" ]; then
-            # Add any Alpine-specific configurations here if needed
-            echo "Checking for Alpine-specific configurations"
-          fi
+          # Show all changes 
+          git diff
         
       - name: Commit and push changes
         run: |
-          # Add all modified files
           git add docker-compose.yml
           git add $(find . -name "Dockerfile" -type f)
-          git add README.md readme.md 2>/dev/null || true
           
-          # Check if there are changes to commit
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-          
-          # Commit and push changes
-          git commit -m "Update Docker images to Alpine variants for smaller footprint"
-          
-          # Push with force to update the branch if it already exists
-          git push --set-upstream origin ${{ steps.branch-name.outputs.branch_name }} --force
-        
-      - name: Create Pull Request
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Check if PR already exists
-          existing_pr=$(gh pr list --head ${{ steps.branch-name.outputs.branch_name }} --state open --json number -q '.[0].number')
-          
-          if [ -n "$existing_pr" ]; then
-            echo "Pull request already exists: #$existing_pr"
-          else
-            # Create a new PR
-            gh pr create \
-              --title "Use Alpine variants for Docker images" \
-              --body "This PR replaces standard Docker images with their Alpine variants to reduce image size and improve security.
-              
-              Changes:
-              - Postgres: postgres:13 → postgres:13-alpine
-              - Redis: redis:6 → redis:alpine
-              - Node.js: node → node:18-alpine (in Dockerfiles)
-              
-              **Benefits:**
-              - Smaller image sizes (up to 80% reduction)
-              - Faster download and startup times
-              - Reduced attack surface
-              - Lower memory footprint
-              
-              This PR was automatically generated by the Create Alpine Variant workflow." \
-              --base ${{ github.ref_name }} \
-              --head ${{ steps.branch-name.outputs.branch_name }}
-            
-            echo "Pull request created successfully"
-          fi
-            
-      - name: Output branch information
-        run: |
-          echo "✅ Created Alpine variant branch: ${{ steps.branch-name.outputs.branch_name }}"
-          echo "👉 Compare with original branch: https://github.com/${{ github.repository }}/compare/${{ github.ref_name }}...${{ steps.branch-name.outputs.branch_name }}" 
+          git commit -m "Update Docker images to Alpine variants and remove UI tools"
+          git push -f origin monolith-migration-alpine 
