@@ -10,15 +10,6 @@
   "monorepo": true,
   "root": "apps/backend",
   "projects": {
-    "auth": {
-      "type": "application",
-      "root": "apps/auth",
-      "entryFile": "main",
-      "sourceRoot": "apps/auth/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/auth/tsconfig.app.json"
-      }
-    },
     "backend": {
       "type": "application",
       "root": "apps/backend",
@@ -26,42 +17,6 @@
       "sourceRoot": "apps/backend/src",
       "compilerOptions": {
         "tsConfigPath": "apps/backend/tsconfig.app.json"
-      }
-    },
-    "fcm": {
-      "type": "application",
-      "root": "apps/fcm",
-      "entryFile": "main",
-      "sourceRoot": "apps/fcm/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/fcm/tsconfig.app.json"
-      }
-    },
-    "fcmToken": {
-      "type": "application",
-      "root": "apps/fcmToken",
-      "entryFile": "main",
-      "sourceRoot": "apps/fcmToken/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/fcmToken/tsconfig.app.json"
-      }
-    },
-    "otp": {
-      "type": "application",
-      "root": "apps/otp",
-      "entryFile": "main",
-      "sourceRoot": "apps/otp/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/otp/tsconfig.app.json"
-      }
-    },
-    "service": {
-      "type": "application",
-      "root": "apps/service",
-      "entryFile": "main",
-      "sourceRoot": "apps/service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/service/tsconfig.app.json"
       }
     }
   }

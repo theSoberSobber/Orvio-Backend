@@ -1,20 +1,6 @@
 # TODO: persist data in postgres contianers 
 # and redis how (okay maybe not redis)
 services:
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    env_file:
-      - .env
-    healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   postgres:
     image: postgres:13
     container_name: postgres
@@ -39,90 +25,15 @@ services:
     volumes:
       - redis_data:/data
 
-  auth-service:
-    build:
-      context: ./
-      dockerfile: ./apps/auth/Dockerfile
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      otp-service:
-        condition: service_started
-    env_file:
-      - .env
-    command: npm run start:dev auth
-
-  otp-service:
-    build:
-      context: ./
-      dockerfile: ./apps/otp/Dockerfile
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    env_file:
-      - .env
-    command: npm run start:dev otp
-
-  fcm-token-service:
-    build:
-      context: ./
-      dockerfile: ./apps/fcmToken/Dockerfile
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      # TODO: dependency for pruning purposes not right now
-      # fcm-service:
-      #   condition: service_started
-    env_file:
-      - .env
-    command: npm run start:dev fcmToken
-
-  fcm-service:
-    build:
-      context: ./
-      dockerfile: ./apps/fcm/Dockerfile
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    env_file:
-      - .env
-    command: npm run start:dev fcm
-  
-  # service-service will depend on fcm-service and fcm-token-service
-  # api gateway can depend on service-service then
-
-  service-service:
-    build:
-      context: ./
-      dockerfile: ./apps/service/Dockerfile
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      fcm-service:
-        condition: service_started
-      fcm-token-service:
-        condition: service_started
-    env_file:
-      - .env
-    command: npm run start:dev service
-
   api-gateway:
     build:
       context: ./
       dockerfile: ./apps/backend/Dockerfile
     depends_on:
-      - auth-service
-      - service-service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     ports:
       - "3000:3000"
     env_file:
