@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
+import { Device } from 'apps/shared/entities/device.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 /**
  * FcmTokenService - Manages FCM tokens for device messaging
@@ -8,21 +11,54 @@ import { Redis } from 'ioredis';
  */
 @Injectable()
 export class FcmTokenService {
-  constructor(@InjectRedis('FCM_TOKEN_SERVICE_REDIS') private readonly redis: Redis) {}
+  constructor(
+    @InjectRedis('FCM_TOKEN_SERVICE_REDIS') private readonly redis: Redis,
+    @InjectRepository(Device) private readonly deviceRepo: Repository<Device>
+  ) {}
 
   private readonly tokenSetKey = 'fcm_tokens'; // Redis Set for unique tokens
-  private readonly deviceMapKey = 'fcm_devices'; // Redis Hash for token → device mapping
+  private readonly deviceMapKey = 'fcm_device'; // Redis Hash for token → device mapping
 
   /**
    * Register a device with its FCM token in Redis
    * @param device Device object containing FCM token
    * @returns Success status
    */
-  async registerDevice(device: any) {
-    console.log("Registering device in FCM Token Service:", device);
-    await this.redis.sadd(this.tokenSetKey, device.device.fcmToken);
-    await this.redis.hset(this.deviceMapKey, device.device.fcmToken, JSON.stringify(device));
-    return { success: true, message: 'Device registered/updated in Redis' };
+  async registerDevice({ device }: { device: Device }) {
+    const { phoneNumber, fcmToken } = device;
+    
+    if (!phoneNumber || !fcmToken) {
+      throw new BadRequestException('Phone number and FCM token are required');
+    }
+
+    // Check if device already exists
+    const existingDevice = await this.deviceRepo.findOne({ 
+      where: { phoneNumber },
+      relations: ['user']
+    });
+
+    let savedDevice;
+    if (existingDevice) {
+      // Update existing device
+      existingDevice.fcmToken = fcmToken;
+      existingDevice.isActive = true;
+      savedDevice = await this.deviceRepo.save(existingDevice);
+    } else {
+      // Create new device
+      const newDevice = this.deviceRepo.create({
+        phoneNumber,
+        fcmToken,
+        isActive: true,
+        user: device.user
+      });
+      savedDevice = await this.deviceRepo.save(newDevice);
+    }
+
+    // Store device in Redis
+    await this.redis.sadd(this.tokenSetKey, fcmToken);
+    await this.redis.hset(this.deviceMapKey, fcmToken, JSON.stringify({ device: savedDevice }));
+
+    return savedDevice;
   }
 
   /**

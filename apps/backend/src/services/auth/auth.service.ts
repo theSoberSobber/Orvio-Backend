@@ -34,7 +34,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid OTP');
     }
   
-    let user = await this.userRepo.findOne({ where: { phoneNumber }, relations: ['devices', 'sessions'] });
+    let user = await this.userRepo.findOne({ where: { phoneNumber }, relations: ['device', 'sessions'] });
   
     if (!user) {
       user = this.userRepo.create({ phoneNumber });
@@ -86,42 +86,39 @@ export class AuthService {
     return { success: true };
   }
 
-  async registerDevice(userId: string, deviceHash: string, fcmToken: string, sessionId: string) {
-    // to restrict immediately after signOut
-    // otherwise jwt lasts for a while
+  async registerDevice(userId: string, phoneNumber: string, fcmToken: string, sessionId: string) {
     const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
     if (!session) {
         throw new ForbiddenException('Session not found');
     }
 
-    const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['devices'] });
+    const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['device'] });
     if (!user) {
         throw new ForbiddenException('Invalid user'); 
-        // 400 -> bad request, not doing notfound 404 here cus does not make sense
-        // UPDATE: forbidden is fine, the user should signout if things are bad and they can't register
     }
 
+    let device = await this.deviceRepo.findOne({ where: { user: { id: userId } }, relations: ['user'] });
     let shouldWrite = false;
-    let device = await this.deviceRepo.findOne({ where: { deviceHash } });
 
     if (!device) {
-        device = this.deviceRepo.create({ deviceHash, fcmToken, user });
+        device = this.deviceRepo.create({ phoneNumber, fcmToken, user });
         shouldWrite = true;
+    } else if (device.user.id !== userId) {
+        throw new ForbiddenException('Device already registered to another user');
     } else {
-        device.user = user;
-        shouldWrite = shouldWrite || (device.fcmToken!=fcmToken);
+        shouldWrite = shouldWrite || (device.fcmToken !== fcmToken);
         device.fcmToken = fcmToken;
+        device.phoneNumber = phoneNumber;
     }
 
-    shouldWrite = shouldWrite || (device.isActive!=true)
+    shouldWrite = shouldWrite || (device.isActive !== true);
     device.isActive = true;
     
-    if(shouldWrite){
+    if(shouldWrite) {
       await this.deviceRepo.save(device);
       await this.sessionRepo.update({ id: sessionId }, { device });
       
       console.log("[Auth Service] Registering device with FCM Token Service...")
-      // Call the fcmTokenService directly instead of using RabbitMQ
       await this.fcmTokenService.registerDevice({ device });
       console.log("[Auth Service] Device registered with FCM Token Service")
     }
@@ -129,17 +126,8 @@ export class AuthService {
   }
 
   async getUserProfile(userId: string) {
-    // no need to restrict immediately
-    // not a sensitive method
-    // if want to implement get sessionId from the JWT in authGuard and pass in from the controller
-    // 
-    // const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
-    // if (!session) {
-    //     throw toRpcException(new ForbiddenException('Session not found'));
-    // }
-
-    const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['devices', 'sessions', 'apiKeys'] });
-    if (!user){
+    const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['device', 'sessions', 'apiKeys'] });
+    if (!user) {
       throw new UnauthorizedException('Invalid user');
     }
     return user;
@@ -207,17 +195,22 @@ export class AuthService {
       totalMessagesSent: session.device.totalMessagesSent
     } : null;
   
-    const allDevices = await this.deviceRepo.find({
-      where: { user: { id: userId } }
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: ['device']
     });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
   
     const allDevicesStats = {
-      failedToSendAck: allDevices.reduce((sum, device) => sum + device.failedToSendAck, 0),
-      sentAckNotVerified: allDevices.reduce((sum, device) => sum + device.sentAckNotVerified, 0),
-      sentAckVerified: allDevices.reduce((sum, device) => sum + device.sentAckVerified, 0),
-      totalMessagesSent: allDevices.reduce((sum, device) => sum + device.totalMessagesSent, 0),
-      totalDevices: allDevices.length,
-      activeDevices: allDevices.filter(device => device.isActive).length
+      failedToSendAck: user.device?.failedToSendAck || 0,
+      sentAckNotVerified: user.device?.sentAckNotVerified || 0,
+      sentAckVerified: user.device?.sentAckVerified || 0,
+      totalMessagesSent: user.device?.totalMessagesSent || 0,
+      totalDevices: user.device ? 1 : 0,
+      activeDevices: user.device?.isActive ? 1 : 0
     };
   
     // Consumer Stats (API Key Usage)

@@ -44,7 +44,7 @@ export class ServiceService {
       const { device: newDevice } = await this.fcmTokenService.getToken();
       
       if (!newDevice) {
-        this.logger.warn("No devices available for sending OTP");
+        this.logger.warn("No device available for sending OTP");
         return;
       }
 
@@ -92,6 +92,8 @@ export class ServiceService {
       
       const result = await this.redis.eval(luaScript, 1, tid, otp, newDevice.id, 0, this.maxOtpDepth);
   
+      console.log("RESULT OF LUA SCRIPT (SUPPOSED TO BE 0 IF ALREADY ACKNOWLEDGED): ", result);
+
       if (result === 0 || result === -1) {
         clearInterval(this.intervals.get(tid));
         this.intervals.delete(tid);

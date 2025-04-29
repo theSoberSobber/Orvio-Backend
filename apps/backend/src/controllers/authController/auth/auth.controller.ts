@@ -28,10 +28,10 @@ export class AuthController {
 
   @UseGuards(AuthGuard)
   @Post('register')
-  async registerDevice(@Body() data: { deviceHash: string; fcmToken: string }, @Req() req) {
+  async registerDevice(@Body() data: { phoneNumber: string; fcmToken: string }, @Req() req) {
     const userId = req.user.userId;
     const sessionId = req.user.sessionId;
-    return this.authService.registerDevice(userId, data.deviceHash, data.fcmToken, sessionId);
+    return this.authService.registerDevice(userId, data.phoneNumber, data.fcmToken, sessionId);
   }
 
   @UseGuards(AuthGuard)

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity()
@@ -9,13 +9,14 @@ export class Device {
   @Column({ default: true })
   isActive: boolean;
 
-  @Column({ unique: true })
-  deviceHash: string;
+  @Column({ unique: true, nullable: false })
+  phoneNumber: string;
 
   @Column({ unique: true })
   fcmToken: string;
 
-  @ManyToOne(() => User, (user) => user.devices, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.device, { onDelete: 'CASCADE' })
+  @JoinColumn()
   user: User;
 
   @Column({ default: 0 })
