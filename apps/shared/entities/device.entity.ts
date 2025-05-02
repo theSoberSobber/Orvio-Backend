@@ -30,4 +30,10 @@ export class Device {
 
   @Column({ default: 0 })
   totalMessagesSent: number;
+
+  @Column({ default: 0 })
+  messageSentSuccessfully: number;
+
+  @Column({ default: 0 })
+  messageTried: number;
 }

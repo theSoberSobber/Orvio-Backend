@@ -8,7 +8,7 @@ import * as jwt from 'jsonwebtoken';
 import { ApiKey } from 'apps/shared/entities/apiKey.entity';
 import { OtpService } from '../otp/otp.service';
 import { FcmTokenService } from '../fcmToken/fcmToken.service';
-import { FcmService } from '../fcm/fcm.service';
+import { CreditService } from '../credit/credit.service';
 
 @Injectable()
 export class AuthService {
@@ -19,7 +19,7 @@ export class AuthService {
     @InjectRepository(ApiKey) private apiKeyRepo: Repository<ApiKey>,
     private readonly otpService: OtpService,
     private readonly fcmTokenService: FcmTokenService,
-    private readonly fcmService: FcmService,
+    private readonly creditService: CreditService,
   ) {}
 
   async sendOtp(phoneNumber: string) {
@@ -192,7 +192,9 @@ export class AuthService {
       failedToSendAck: session.device.failedToSendAck,
       sentAckNotVerified: session.device.sentAckNotVerified,
       sentAckVerified: session.device.sentAckVerified,
-      totalMessagesSent: session.device.totalMessagesSent
+      totalMessagesSent: session.device.totalMessagesSent,
+      messageSentSuccessfully: session.device.messageSentSuccessfully,
+      messageTried: session.device.messageTried
     } : null;
   
     const user = await this.userRepo.findOne({
@@ -209,6 +211,8 @@ export class AuthService {
       sentAckNotVerified: user.device?.sentAckNotVerified || 0,
       sentAckVerified: user.device?.sentAckVerified || 0,
       totalMessagesSent: user.device?.totalMessagesSent || 0,
+      messageSentSuccessfully: user.device?.messageSentSuccessfully || 0,
+      messageTried: user.device?.messageTried || 0,
       totalDevices: user.device ? 1 : 0,
       activeDevices: user.device?.isActive ? 1 : 0
     };
@@ -233,6 +237,10 @@ export class AuthService {
       newestKey: apiKeys.length > 0 ? Math.max(...apiKeys.map(key => key.createdAt.getTime())) : null,
       lastUsedKey: apiKeys.length > 0 ? Math.max(...apiKeys.map(key => key.lastUsed ? key.lastUsed.getTime() : 0)) : null
     };
+
+    // Credit stats
+    const credits = await this.creditService.getCredits(userId);
+    const creditMode = await this.creditService.getCreditMode(userId);
   
     return {
       provider: {
@@ -242,6 +250,10 @@ export class AuthService {
       consumer: {
         aggregate: apiKeyAggregateStats,
         keys: apiKeyDetailedStats
+      },
+      credits: {
+        balance: credits,
+        mode: creditMode
       }
     };
   }

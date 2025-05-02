@@ -12,8 +12,8 @@ from colorama import init, Fore, Style
 init()
 
 # Base URL for API
-BASE_URL = "http://localhost:3000"
-
+# BASE_URL = "http://localhost:3000"
+BASE_URL = "https://backend-orvio.1110777.xyz"
 # Global variables to store tokens and session data
 access_token = None
 refresh_token = None

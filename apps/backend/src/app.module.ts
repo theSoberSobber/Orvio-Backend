@@ -5,8 +5,6 @@ import { AuthController } from './controllers/authController/auth/auth.controlle
 import { AuthService } from './services/auth/auth.service';
 import { OtpService } from './services/otp/otp.service';
 import { FcmTokenService } from './services/fcmToken/fcmToken.service';
-import { ServiceService } from './services/service/service.service';
-import { FcmService } from './services/fcm/fcm.service';
 import { ServiceController } from './controllers/serviceController/service/service.controller';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -15,6 +13,10 @@ import { Device } from 'apps/shared/entities/device.entity';
 import { Session } from 'apps/shared/entities/session.entity';
 import { ApiKey } from 'apps/shared/entities/apiKey.entity';
 import { RedisModule } from './redis/redis.module';
+import { ServiceModule } from './services/service/service.module';
+import { MetricsModule } from './services/metrics/metrics.module';
+import { CreditModule } from './services/credit/credit.module';
+import { CreditService } from './services/credit/credit.service';
 
 @Module({
   imports: [
@@ -32,8 +34,12 @@ import { RedisModule } from './redis/redis.module';
     TypeOrmModule.forFeature([User, Device, Session, ApiKey]),
     // Import our custom Redis module with all necessary connections
     RedisModule,
+    // Import service modules
+    ServiceModule,
+    MetricsModule,
+    CreditModule
   ],
   controllers: [AppController, AuthController, ServiceController],
-  providers: [AppService, AuthService, OtpService, FcmTokenService, ServiceService, FcmService],
+  providers: [AppService, AuthService, OtpService, FcmTokenService],
 })
 export class AppModule {}

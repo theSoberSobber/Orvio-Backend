@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+import requests
+import time
+import json
+import uuid
+import hashlib
+import random
+import sys
+from colorama import init, Fore, Style
+
+# Initialize colorama for colored terminal output
+init()
+
+# Base URL for API
+BASE_URL = "http://localhost:3000"
+
+# Global variables to store tokens and session data
+access_token = None
+refresh_token = None
+user_id = None
+session_id = None
+phone_number = "9876543210"  # Test phone number
+fcm_token = f"test_fcm_token_{uuid.uuid4()}"
+service_tid = None
+
+def print_step(step_number, description):
+    """Print a formatted step header"""
+    print(f"\n{Fore.BLUE}=== STEP {step_number}: {description} ==={Style.RESET_ALL}")
+
+def print_response(response, description):
+    """Print a formatted response"""
+    print(f"{Fore.YELLOW}{description}:{Style.RESET_ALL}")
+    print(f"Status Code: {response.status_code}")
+    try:
+        response_data = response.json()
+        print(f"Response Body: {json.dumps(response_data, indent=2)}")
+        return response_data
+    except:
+        print(f"Response Body: {response.text}")
+        return None
+
+def extract_jwt_payload(token):
+    """Extract payload from JWT token"""
+    try:
+        # JWT is in format header.payload.signature
+        payload = token.split('.')[1]
+        # Add padding if needed
+        payload += '=' * (-len(payload) % 4)
+        # Decode base64 and parse JSON
+        return json.loads(base64.b64decode(payload).decode('utf-8'))
+    except:
+        return None
+
+def test_auth_send_otp():
+    """Test sending OTP for authentication"""
+    print_step(1, "Send OTP for Authentication")
+    
+    data = {
+        "phoneNumber": phone_number
+    }
+    
+    response = requests.post(f"{BASE_URL}/auth/sendOtp", json=data)
+    return print_response(response, "Send OTP Response")
+
+def test_auth_verify_otp(transaction_id):
+    """Test verifying OTP for authentication"""
+    print_step(2, "Verify OTP for Authentication")
+    
+    global access_token, refresh_token, user_id, session_id
+    
+    data = {
+        "transactionId": transaction_id,
+        "userInputOtp": "123456"  # Hardcoded OTP from the code
+    }
+    
+    response = requests.post(f"{BASE_URL}/auth/verifyOtp", json=data)
+    response_data = print_response(response, "Verify OTP Response")
+    
+    if response.status_code == 201 and response_data:
+        access_token = response_data.get('accessToken')
+        refresh_token = response_data.get('refreshToken')
+        
+        # Extract user_id and session_id from JWT payload
+        payload = extract_jwt_payload(access_token)
+        if payload:
+            user_id = payload.get('userId')
+            session_id = payload.get('sessionId')
+            print(f"{Fore.CYAN}Extracted from JWT:{Style.RESET_ALL} user_id={user_id}, session_id={session_id}")
+    
+    return response_data
+
+def test_register_device():
+    """Test registering a device"""
+    print_step(3, "Register Device")
+    
+    data = {
+        "phoneNumber": phone_number,
+        "fcmToken": fcm_token
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    
+    response = requests.post(f"{BASE_URL}/auth/register", json=data, headers=headers)
+    return print_response(response, "Register Device Response")
+
+def test_service_send_otp():
+    """Test sending OTP via service"""
+    print_step(4, "Send OTP via Service")
+    
+    global service_tid
+    
+    data = {
+        "phoneNumber": phone_number
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    
+    response = requests.post(f"{BASE_URL}/service/sendOtp", json=data, headers=headers)
+    response_data = print_response(response, "Service Send OTP Response")
+    
+    if response.status_code in [200, 201] and response_data:
+        service_tid = response_data.get('tid')
+    
+    return response_data
+
+def test_service_ack():
+    """Test acknowledging OTP via service"""
+    print_step(5, "Acknowledge OTP via Service")
+    
+    if not service_tid:
+        print(f"{Fore.RED}No service_tid available. Run test_service_send_otp first.{Style.RESET_ALL}")
+        return None
+    
+    data = {
+        "tid": service_tid
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    
+    response = requests.post(f"{BASE_URL}/service/ack", json=data, headers=headers)
+    return print_response(response, "Service Acknowledge Response")
+
+def main():
+    """Main function to run all tests"""
+    try:
+        # Step 1: Send OTP
+        send_otp_response = test_auth_send_otp()
+        if not send_otp_response or 'transactionId' not in send_otp_response:
+            print(f"{Fore.RED}Failed to get transaction ID{Style.RESET_ALL}")
+            return
+        
+        # Step 2: Verify OTP
+        verify_otp_response = test_auth_verify_otp(send_otp_response['transactionId'])
+        if not verify_otp_response or not access_token:
+            print(f"{Fore.RED}Failed to verify OTP{Style.RESET_ALL}")
+            return
+        
+        # Step 3: Register Device
+        test_register_device()
+        
+        # Step 4: Send OTP via Service
+        test_service_send_otp()
+        
+        # Step 5: Acknowledge OTP via Service
+        test_service_ack()
+        
+    except Exception as e:
+        print(f"{Fore.RED}Error: {str(e)}{Style.RESET_ALL}")
+        return
+
+if __name__ == "__main__":
+    main() 

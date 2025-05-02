@@ -12,22 +12,31 @@ export class FcmService {
   }
 
   private initializeFirebase() {
-    const serviceFilePath = process.env.FCM_SERVICE_FILE_PATH;
-    if (!serviceFilePath) {
-      throw new Error('FCM_SERVICE_FILE_PATH is not defined in environment variables');
+    try {
+      if (admin.apps.length) {
+        this.logger.log('Firebase Admin SDK already initialized');
+        return;
+      }
+
+      const serviceFilePath = process.env.FCM_SERVICE_FILE_PATH;
+      if (!serviceFilePath) {
+        throw new Error('FCM_SERVICE_FILE_PATH is not defined in environment variables');
+      }
+
+      const absolutePath = path.resolve(process.cwd(), serviceFilePath);
+      if (!fs.existsSync(absolutePath)) {
+        throw new Error(`FCM service account file not found at path: ${absolutePath}`);
+      }
+
+      const serviceAccount = JSON.parse(fs.readFileSync(absolutePath, 'utf-8'));
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+
+      this.logger.log('Firebase Admin SDK initialized');
+    } catch (error) {
+      this.logger.error(`Failed to initialize Firebase: ${error.message}`);
     }
-
-    const absolutePath = path.resolve(process.cwd(), serviceFilePath);
-    if (!fs.existsSync(absolutePath)) {
-      throw new Error(`FCM service account file not found at path: ${absolutePath}`);
-    }
-
-    const serviceAccount = JSON.parse(fs.readFileSync(absolutePath, 'utf-8'));
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-
-    this.logger.log('Firebase Admin SDK initialized');
   }
 
   async sendPingMessage(token: string) {

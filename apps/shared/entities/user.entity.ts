@@ -3,6 +3,12 @@ import { Session } from './session.entity';
 import { Device } from './device.entity';
 import { ApiKey } from './apiKey.entity';
 
+export enum CreditMode {
+  DIRECT = 'direct',
+  MODERATE = 'moderate',
+  STRICT = 'strict'
+}
+
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -10,6 +16,16 @@ export class User {
 
   @Column({ unique: true })
   phoneNumber: string;
+
+  @Column({ default: 50 })
+  credits: number;
+
+  @Column({
+    type: 'enum',
+    enum: CreditMode,
+    default: CreditMode.MODERATE
+  })
+  creditMode: CreditMode;
 
   @OneToMany(() => Session, (session) => session.user, { cascade: true })
   sessions: Session[];
@@ -19,5 +35,4 @@ export class User {
 
   @OneToMany(() => ApiKey, (apiKey) => apiKey.user, { eager: true, cascade: true })
   apiKeys: ApiKey[];
-
 }
