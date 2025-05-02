@@ -56,11 +56,11 @@ export class ServiceController {
         return { mode };
     }
 
-    @UseGuards(AuthGuard)
-    @Patch("/creditMode")
-    async setCreditMode(@Body() data: { mode: CreditMode }, @Req() req) {
-        const userId = req.user.userId;
-        await this.serviceService.setUserCreditMode(userId, data.mode);
-        return { success: true };
-    }
+    // @UseGuards(AuthGuard)
+    // @Patch("/creditMode")
+    // async setCreditMode(@Body() data: { mode: CreditMode }, @Req() req) {
+    //     const userId = req.user.userId;
+    //     await this.serviceService.setUserCreditMode(userId, data.mode);
+    //     return { success: true };
+    // }
 }

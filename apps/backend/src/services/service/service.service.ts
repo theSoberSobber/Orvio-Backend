@@ -12,6 +12,7 @@ import { FcmService } from '../fcm/fcm.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { CreditService } from '../credit/credit.service';
 import { CreditMode } from 'apps/shared/entities/user.entity';
+import { SYSTEM_SERVICE_USER_ID } from '../otp/otp.service';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -34,11 +35,18 @@ export class ServiceService {
   ) {}
 
   async sendOtp(userIdThatRequested: string, phoneNumber: string, reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string, otpExpiry: number = 120): Promise<{ tid: string }> {
-    // Check and deduct credits first - always deduct regardless of mode
-    const hasCredits = await this.creditService.checkAndDeductCredits(userIdThatRequested);
+    // Check if this is a system service request - bypass credit check if it is
+    const isSystemRequest = userIdThatRequested === SYSTEM_SERVICE_USER_ID;
     
-    if (!hasCredits) {
-      throw new HttpException('Insufficient credits', HttpStatus.PAYMENT_REQUIRED);
+    if (!isSystemRequest) {
+      // Regular user request - check and deduct credits
+      const hasCredits = await this.creditService.checkAndDeductCredits(userIdThatRequested);
+      
+      if (!hasCredits) {
+        throw new HttpException('Insufficient credits', HttpStatus.PAYMENT_REQUIRED);
+      }
+    } else {
+      this.logger.log('Processing system service request - bypassing credit check');
     }
 
     const tid = uuidv4();
@@ -46,12 +54,14 @@ export class ServiceService {
     
     const timestamp = new Date().toISOString();
     
-    // Store the user ID for potential refund later
-    this.tidToUserMap.set(tid, userIdThatRequested);
-    
-    // Store credit mode in Redis for later reference
-    const creditMode = await this.creditService.getCreditMode(userIdThatRequested);
-    await this.redis.set(`credit:mode:${tid}`, creditMode);
+    // Store the user ID for potential refund later (only for regular users)
+    if (!isSystemRequest) {
+      this.tidToUserMap.set(tid, userIdThatRequested);
+      
+      // Store credit mode in Redis for later reference
+      const creditMode = await this.creditService.getCreditMode(userIdThatRequested);
+      await this.redis.set(`credit:mode:${tid}`, creditMode);
+    }
     
     this.schedule(tid, otp, phoneNumber, timestamp, reportingCustomerWebhook, reportingCustomerWebhookSecret, otpExpiry);
     return { tid };
