@@ -22,7 +22,7 @@ async function bootstrap() {
   SwaggerModule.setup('', app, document); // Root path
 
   app.enableCors({
-    origin: 'https://orvio.pavit.xyz',
+    origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: 'Content-Type, Authorization',
     credentials: true,
