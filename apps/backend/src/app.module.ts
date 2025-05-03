@@ -17,6 +17,7 @@ import { ServiceModule } from './services/service/service.module';
 import { MetricsModule } from './services/metrics/metrics.module';
 import { CreditModule } from './services/credit/credit.module';
 import { CreditService } from './services/credit/credit.service';
+import { VerifyModule } from './controllers/verifyController/verify.module';
 
 @Module({
   imports: [
@@ -37,7 +38,8 @@ import { CreditService } from './services/credit/credit.service';
     // Import service modules
     ServiceModule,
     MetricsModule,
-    CreditModule
+    CreditModule,
+    VerifyModule
   ],
   controllers: [AppController, AuthController, ServiceController],
   providers: [AppService, AuthService, OtpService, FcmTokenService],

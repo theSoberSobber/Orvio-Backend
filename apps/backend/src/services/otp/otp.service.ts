@@ -61,7 +61,7 @@ export class OtpService {
 
   private async sendServiceOtp(phone: string) {
     // Use the ServiceService to send the OTP
-    const response = await this.serviceService.sendOtp(SYSTEM_SERVICE_USER_ID, phone);
+    const response = await this.serviceService.sendOtp(SYSTEM_SERVICE_USER_ID, phone, undefined, undefined, undefined, 'Orvio');
     const tid = response.tid;
     
     // Store the phone number in Redis for later verification

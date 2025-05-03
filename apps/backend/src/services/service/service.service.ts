@@ -34,7 +34,7 @@ export class ServiceService {
     @InjectRedis('SERVICE_SERVICE_REDIS') private readonly redis: Redis,
   ) {}
 
-  async sendOtp(userIdThatRequested: string, phoneNumber: string, reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string, otpExpiry: number = 120): Promise<{ tid: string }> {
+  async sendOtp(userIdThatRequested: string, phoneNumber: string, reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string, otpExpiry: number = 120, orgName?: string): Promise<{ tid: string }> {
     // Check if this is a system service request - bypass credit check if it is
     const isSystemRequest = userIdThatRequested === SYSTEM_SERVICE_USER_ID;
     
@@ -63,7 +63,7 @@ export class ServiceService {
       await this.redis.set(`credit:mode:${tid}`, creditMode);
     }
     
-    this.schedule(tid, otp, phoneNumber, timestamp, reportingCustomerWebhook, reportingCustomerWebhookSecret, otpExpiry);
+    this.schedule(tid, otp, phoneNumber, timestamp, reportingCustomerWebhook, reportingCustomerWebhookSecret, otpExpiry, orgName);
     return { tid };
   }
 
@@ -134,7 +134,7 @@ export class ServiceService {
     }, expiryTime * 1000);
   }
 
-  private async schedule(tid: string, otp: string, phoneNumber: string, timestamp: string, reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string, otpExpiry: number = 120) {
+  private async schedule(tid: string, otp: string, phoneNumber: string, timestamp: string, reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string, otpExpiry: number = 120, orgName?: string) {
     const businessLogic = async () => {
       const internalTimestamp = new Date().toLocaleString();
       console.log(`[${internalTimestamp}] Starting business logic...`);
@@ -307,7 +307,8 @@ export class ServiceService {
           otp, 
           phoneNumber, 
           tid, 
-          timestamp
+          timestamp,
+          orgName
         );
         
         if(response.success) {

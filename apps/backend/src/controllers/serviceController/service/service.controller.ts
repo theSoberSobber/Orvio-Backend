@@ -13,7 +13,8 @@ export class ServiceController {
         phoneNumber: string, 
         otpExpiry?: number,
         reportingCustomerWebhook?: string,
-        reportingCustomerWebhookSecret?: string
+        reportingCustomerWebhookSecret?: string,
+        orgName?: string
     }, @Req() req){
         const userId = req.user.userId;
         return await this.serviceService.sendOtp(
@@ -21,7 +22,8 @@ export class ServiceController {
             data.phoneNumber, 
             data.reportingCustomerWebhook, 
             data.reportingCustomerWebhookSecret, 
-            data.otpExpiry
+            data.otpExpiry,
+            data.orgName
         );
     }
 

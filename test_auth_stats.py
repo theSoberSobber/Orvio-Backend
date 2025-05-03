@@ -112,7 +112,8 @@ def test_service_send_otp():
     global service_tid
     
     data = {
-        "phoneNumber": phone_number
+        "phoneNumber": phone_number,
+        "orgName": "Test Organization"
     }
     
     headers = {
