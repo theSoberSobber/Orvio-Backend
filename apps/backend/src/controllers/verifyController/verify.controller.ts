@@ -1,11 +1,24 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { VerifyTokenParamDto } from './verify.dto';
 
+@ApiTags('Verification')
 @Controller('verify')
 export class VerifyController {
   private readonly publicKey = process.env.JWT_SECRET || 'default-secret-key';
 
+  @ApiOperation({ summary: 'Verify message authenticity and display in browser' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns HTML page with verified message' 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Invalid or expired token' 
+  })
+  @ApiParam({ name: 'token', type: 'string', description: 'JWT token to verify' })
   @Get(':token')
   async verifyMessage(@Param('token') token: string, @Res() res: Response) {
     try {
