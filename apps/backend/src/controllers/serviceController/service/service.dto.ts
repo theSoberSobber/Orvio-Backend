@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { CreditMode } from 'apps/shared/entities/user.entity';
 
 export class SendOtpDto {
   @ApiProperty({
@@ -56,4 +57,13 @@ export class AckDto {
     example: 'tid_1234567890'
   })
   tid: string;
+}
+
+export class CreditModeDto {
+  @ApiProperty({
+    description: 'Credit mode to set (DIRECT: charge 1 credit, MODERATE: charge 1 credit with refund policy, STRICT: charge 2 credits with verification)',
+    enum: CreditMode,
+    example: CreditMode.MODERATE
+  })
+  mode: CreditMode;
 } 

@@ -241,6 +241,7 @@ export class AuthService {
     // Credit stats
     const credits = await this.creditService.getCredits(userId);
     const creditMode = await this.creditService.getCreditMode(userId);
+    const cashbackPoints = await this.creditService.getCashbackPoints(userId);
   
     return {
       provider: {
@@ -253,7 +254,8 @@ export class AuthService {
       },
       credits: {
         balance: credits,
-        mode: creditMode
+        mode: creditMode,
+        cashbackPoints: cashbackPoints
       }
     };
   }

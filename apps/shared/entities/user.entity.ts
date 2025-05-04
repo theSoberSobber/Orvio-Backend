@@ -9,6 +9,12 @@ export enum CreditMode {
   STRICT = 'strict'
 }
 
+export enum CreditCost {
+  DIRECT = 1,
+  MODERATE = 1,
+  STRICT = 2
+}
+
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -19,6 +25,9 @@ export class User {
 
   @Column({ default: 50 })
   credits: number;
+
+  @Column({ default: 0 })
+  cashbackPoints: number;
 
   @Column({
     type: 'enum',

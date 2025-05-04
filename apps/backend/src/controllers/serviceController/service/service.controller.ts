@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { AuthGuard } from '../../../guards/auth/auth.guard';
 import { ServiceService } from '../../../services/service/service.service';
 import { CreditMode } from 'apps/shared/entities/user.entity';
-import { SendOtpDto, VerifyOtpDto, AckDto } from './service.dto';
+import { SendOtpDto, VerifyOtpDto, AckDto, CreditModeDto } from './service.dto';
 
 @ApiTags('Service')
 @ApiBearerAuth()
@@ -68,11 +68,16 @@ export class ServiceController {
         return { mode };
     }
 
-    // @UseGuards(AuthGuard)
-    // @Patch("/creditMode")
-    // async setCreditMode(@Body() data: { mode: CreditMode }, @Req() req) {
-    //     const userId = req.user.userId;
-    //     await this.serviceService.setUserCreditMode(userId, data.mode);
-    //     return { success: true };
-    // }
+    @ApiOperation({ 
+      summary: 'Set user credit mode',
+      description: 'DIRECT: charge 1 credit, MODERATE: charge 1 credit with refund policy, STRICT: charge 2 credits with verification'
+    })
+    @ApiResponse({ status: 200, description: 'Credit mode updated successfully' })
+    @UseGuards(AuthGuard)
+    @Patch("/creditMode")
+    async setCreditMode(@Body() data: CreditModeDto, @Req() req) {
+        const userId = req.user.userId;
+        await this.serviceService.setUserCreditMode(userId, data.mode);
+        return { success: true };
+    }
 }

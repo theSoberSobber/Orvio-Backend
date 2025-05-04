@@ -11,7 +11,7 @@ import { FcmTokenService } from '../fcmToken/fcmToken.service';
 import { FcmService } from '../fcm/fcm.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { CreditService } from '../credit/credit.service';
-import { CreditMode } from 'apps/shared/entities/user.entity';
+import { CreditMode, CreditCost } from 'apps/shared/entities/user.entity';
 import { SYSTEM_SERVICE_USER_ID } from '../otp/otp.service';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -35,32 +35,45 @@ export class ServiceService {
   ) {}
 
   async sendOtp(userIdThatRequested: string, phoneNumber: string, reportingCustomerWebhook?: string, reportingCustomerWebhookSecret?: string, otpExpiry: number = 120, orgName?: string): Promise<{ tid: string }> {
+    // Generate transaction ID and OTP first
+    const tid = uuidv4();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const timestamp = new Date().toISOString();
+    
     // Check if this is a system service request - bypass credit check if it is
     const isSystemRequest = userIdThatRequested === SYSTEM_SERVICE_USER_ID;
     
     if (!isSystemRequest) {
+      // Get the user's credit mode first
+      const creditMode = await this.creditService.getCreditMode(userIdThatRequested);
+      
+      // Get credit cost based on credit mode using the enum
+      let creditCost = 1; // Default to 1
+      if (creditMode === CreditMode.DIRECT) {
+        creditCost = CreditCost.DIRECT;
+      } else if (creditMode === CreditMode.MODERATE) {
+        creditCost = CreditCost.MODERATE;
+      } else if (creditMode === CreditMode.STRICT) {
+        creditCost = CreditCost.STRICT;
+      }
+      
       // Regular user request - check and deduct credits
-      const hasCredits = await this.creditService.checkAndDeductCredits(userIdThatRequested);
+      const hasCredits = await this.creditService.checkAndDeductCredits(userIdThatRequested, creditCost);
       
       if (!hasCredits) {
         throw new HttpException('Insufficient credits', HttpStatus.PAYMENT_REQUIRED);
       }
+
+      // Store credit mode in Redis for later reference
+      await this.redis.set(`credit:mode:${tid}`, creditMode);
+      
+      // Store the credit cost for potential refund later
+      await this.redis.set(`credit:cost:${tid}`, creditCost.toString());
+      
+      // Store the user ID for potential refund later
+      this.tidToUserMap.set(tid, userIdThatRequested);
     } else {
       this.logger.log('Processing system service request - bypassing credit check');
-    }
-
-    const tid = uuidv4();
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    const timestamp = new Date().toISOString();
-    
-    // Store the user ID for potential refund later (only for regular users)
-    if (!isSystemRequest) {
-      this.tidToUserMap.set(tid, userIdThatRequested);
-      
-      // Store credit mode in Redis for later reference
-      const creditMode = await this.creditService.getCreditMode(userIdThatRequested);
-      await this.redis.set(`credit:mode:${tid}`, creditMode);
     }
     
     this.schedule(tid, otp, phoneNumber, timestamp, reportingCustomerWebhook, reportingCustomerWebhookSecret, otpExpiry, orgName);
@@ -116,13 +129,18 @@ export class ServiceService {
             
             // For STRICT mode: Credit should be refunded since OTP wasn't verified
             if (userId && creditMode === CreditMode.STRICT) {
-              await this.creditService.refundCredits(userId);
-              console.log(`[${currentTime}] Refunded credit to user ${userId} in STRICT mode due to unverified OTP`);
+              // Get the credit cost that was charged
+              const creditCostStr = await this.redis.get(`credit:cost:${tid}`);
+              const creditCost = creditCostStr ? parseInt(creditCostStr) : 1; // Default to 1 if not found
+              
+              await this.creditService.refundCredits(userId, creditCost);
+              console.log(`[${currentTime}] Refunded ${creditCost} credits to user ${userId} in STRICT mode due to unverified OTP`);
             }
           }
           
           // Clean up after expiry
           await this.redis.del(`credit:mode:${tid}`);
+          await this.redis.del(`credit:cost:${tid}`);
           this.tidToUserMap.delete(tid);
           
         } catch (error) {
@@ -202,6 +220,12 @@ export class ServiceService {
         clearInterval(this.intervals.get(tid));
         this.intervals.delete(tid);
 
+        // Add cashback points when acknowledgement is successful
+        if (userId) {
+          await this.creditService.addCashbackPoints(userId);
+          this.logger.log(`Added cashback points to user ${userId} for successful acknowledgement (ack first)`);
+        }
+
         // Schedule verification check to be done after otpExpiry
         console.log(`[${internalTimestamp}] OTP acknowledged. Calling scheduleVerificationCheckAfterExpiry.`);
         
@@ -232,6 +256,12 @@ export class ServiceService {
         // Case 2: verified before ack
         clearInterval(this.intervals.get(tid));
         this.intervals.delete(tid);
+
+        // Add cashback points when acknowledgement is successful
+        if (userId) {
+          await this.creditService.addCashbackPoints(userId);
+          this.logger.log(`Added cashback points to user ${userId} for successful acknowledgement (verified before ack)`);
+        }
 
         // Increment sentAckVerified metric
         await this.metricsService.incrementMetric(newDevice.id, 'sentAckVerified');
@@ -269,8 +299,12 @@ export class ServiceService {
         // For DIRECT mode: Keep the deduction
         // For MODERATE and STRICT modes: Refund the credit
         if (userId && (creditMode === CreditMode.MODERATE || creditMode === CreditMode.STRICT)) {
-          await this.creditService.refundCredits(userId);
-          console.log(`[${internalTimestamp}] Refunded credit to user ${userId} due to failed OTP send (max depth exceeded)`);
+          // Get the credit cost that was charged
+          const creditCostStr = await this.redis.get(`credit:cost:${tid}`);
+          const creditCost = creditCostStr ? parseInt(creditCostStr) : 1; // Default to 1 if not found
+          
+          await this.creditService.refundCredits(userId, creditCost);
+          console.log(`[${internalTimestamp}] Refunded ${creditCost} credits to user ${userId} due to failed OTP send (max depth exceeded)`);
         }
 
         if (reportingCustomerWebhook) {
@@ -288,6 +322,7 @@ export class ServiceService {
         
         // Clean up
         await this.redis.del(`credit:mode:${tid}`);
+        await this.redis.del(`credit:cost:${tid}`);
         this.tidToUserMap.delete(tid);
 
         return;
@@ -333,8 +368,12 @@ export class ServiceService {
         // For DIRECT mode: Keep the deduction
         // For MODERATE and STRICT modes: Refund the credit
         if (userId && (creditMode === CreditMode.MODERATE || creditMode === CreditMode.STRICT)) {
-          await this.creditService.refundCredits(userId);
-          console.log(`[${internalTimestamp}] Refunded credit to user ${userId} due to failed OTP send (couldn't send message)`);
+          // Get the credit cost that was charged
+          const creditCostStr = await this.redis.get(`credit:cost:${tid}`);
+          const creditCost = creditCostStr ? parseInt(creditCostStr) : 1; // Default to 1 if not found
+          
+          await this.creditService.refundCredits(userId, creditCost);
+          console.log(`[${internalTimestamp}] Refunded ${creditCost} credits to user ${userId} due to failed OTP send (couldn't send message)`);
         }
       }
     };
