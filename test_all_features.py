@@ -81,7 +81,7 @@ def test_auth_send_otp():
     print_header("Testing Auth: Send OTP")
     
     # Generate random phone number for testing
-    phone_number = f"+1{random.randint(1000000000, 9999999999)}"
+    phone_number = f"+919770483089"
     print_info(f"Using random phone number: {phone_number}")
     
     response = make_request("post", "/auth/sendOtp", {"phoneNumber": phone_number}, expected_status=201)
@@ -360,10 +360,12 @@ def test_ack_service():
     response = make_request("get", "/auth/me", auth=True)
     if response:
         profile = response.json()
-        cashback_points = profile.get("cashbackPoints", 0)
+        cashback_points = profile.get("cashbackPoints", "0")
         print_info(f"Current cashback points: {cashback_points}")
         
-        if cashback_points > 0:
+        # Convert cashback points to float for comparison
+        cashback_points_float = float(cashback_points)
+        if cashback_points_float > 0:
             print_success("Cashback points were added successfully")
         else:
             print_warning("No cashback points found, but this might be expected in the first run")
@@ -384,7 +386,8 @@ def test_stats():
     
     # Check for cashback points
     if "credits" in data and "cashbackPoints" in data["credits"]:
-        print_success(f"Cashback points in stats: {data['credits']['cashbackPoints']}")
+        cashback_points = data["credits"]["cashbackPoints"]
+        print_success(f"Cashback points in stats: {cashback_points}")
     else:
         print_warning("Cashback points not found in stats")
     

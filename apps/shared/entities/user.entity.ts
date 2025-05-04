@@ -26,7 +26,7 @@ export class User {
   @Column({ default: 50 })
   credits: number;
 
-  @Column({ default: 0 })
+  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
   cashbackPoints: number;
 
   @Column({

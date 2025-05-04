@@ -124,14 +124,23 @@ export class CreditService {
       }
 
       // Calculate cashback points (10% of credit cost)
-      const cashbackToAdd = creditCost * this.cashbackRate;
+      const cashbackToAdd = parseFloat((creditCost * this.cashbackRate).toFixed(2));
       
       // Add cashback points
-      user.cashbackPoints += cashbackToAdd;
-      await queryRunner.manager.save(user);
+      const currentPoints = parseFloat(user.cashbackPoints.toString() || '0');
+      const newTotal = parseFloat((currentPoints + cashbackToAdd).toFixed(2));
+      
+      // Directly update with exact value to avoid addition issues
+      await queryRunner.manager
+        .createQueryBuilder()
+        .update(User)
+        .set({ cashbackPoints: newTotal })
+        .where('id = :userId', { userId })
+        .execute();
+      
       await queryRunner.commitTransaction();
       
-      this.logger.log(`Added ${cashbackToAdd} cashback points to user ${userId}. New balance: ${user.cashbackPoints}`);
+      this.logger.log(`Added ${cashbackToAdd} cashback points to user ${userId}. New balance: ${newTotal}`);
       return true;
 
     } catch (error) {

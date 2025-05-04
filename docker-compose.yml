@@ -40,30 +40,53 @@ services:
       - .env
     command: npm run start:dev backend
   
-  # TODO: make pg admin work through env variables
-  # auto add server, even if not, make it work
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    ports:
-      - "8080:80"
+  credit-faucet:
+    build:
+      context: ./
+      dockerfile: ./apps/credit-faucet/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
+      api-gateway:
+        condition: service_started
+    ports:
+      - "3001:3001"
     env_file:
       - .env
-  
-  redisinsight:
-    image: redislabs/redisinsight:latest
-    container_name: redisinsight
-    ports:
-      - "5540:5540"
-    depends_on:
-      - redis
-    volumes:
-      - redisinsight_data:/db
     environment:
-      - REDIS_URI=redis://redis:6379
+      - PORT=3001
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - CASHFREE_APP_ID=${CASHFREE_APP_ID:-test_app_id}
+      - CASHFREE_SECRET_KEY=${CASHFREE_SECRET_KEY:-test_secret_key}
+      - CASHFREE_API_URL=${CASHFREE_API_URL:-https://sandbox.cashfree.com/pg}
+  
+  # TODO: make pg admin work through env variables
+  # auto add server, even if not, make it work
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: pgadmin
+  #   ports:
+  #     - "8080:80"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  
+  # redisinsight:
+  #   image: redislabs/redisinsight:latest
+  #   container_name: redisinsight
+  #   ports:
+  #     - "5540:5540"
+  #   depends_on:
+  #     - redis
+  #   volumes:
+  #     - redisinsight_data:/db
+  #   environment:
+  #     - REDIS_URI=redis://redis:6379
       
 volumes:
   postgres_data:

@@ -31,84 +31,115 @@ function Check-Docker {
     }
 }
 
-# Function to rebuild and restart the application
+function Show-Help {
+    Write-Host "Usage: .\test_orvio.ps1 [command]"
+    Write-Host ""
+    Write-Host "Commands:"
+    Write-Host "  help        Show this help message"
+    Write-Host "  build       Rebuild and restart the application"
+    Write-Host "  stop        Stop all containers"
+    Write-Host "  start       Start all containers"
+    Write-Host "  logs        Show logs"
+    Write-Host "  test        Run tests"
+    Write-Host "  update-db   Update database schema"
+    Write-Host ""
+}
+
 function Rebuild-App {
-    Write-ColorMessage "Rebuilding and restarting the application..." $Yellow
+    Write-Host "Rebuilding and restarting the application..."
     docker compose down -v
     docker compose up -d --build
-    
-    # Wait for application to start
-    Write-ColorMessage "Waiting for application to start..." $Yellow
-    Start-Sleep -Seconds 10
-    Write-ColorMessage "Application should be up now." $Green
 }
 
-# Function to show logs
+function Stop-App {
+    Write-Host "Stopping all containers..."
+    docker compose down
+}
+
+function Start-App {
+    Write-Host "Starting all containers..."
+    docker compose up -d
+}
+
 function Show-Logs {
-    Write-ColorMessage "Showing application logs..." $Yellow
-    docker compose logs -f api-gateway
+    Write-Host "Showing logs..."
+    docker compose logs -f
 }
 
-# Function to run tests
 function Run-Tests {
-    Write-ColorMessage "Running tests..." $Yellow
+    Write-Host "Running tests..."
     python test_all_features.py
-    $testResult = $LASTEXITCODE
+}
+
+function Update-Database {
+    Write-Host "Updating database schema..."
+    # Wait for PostgreSQL to be ready
+    Write-Host "Waiting for PostgreSQL to be ready..."
+    $isReady = $false
+    $maxAttempts = 30
+    $attempt = 0
     
-    if ($testResult -eq 0) {
-        Write-ColorMessage "Tests passed!" $Green
-    } else {
-        Write-ColorMessage "Tests failed!" $Red
+    while (-not $isReady -and $attempt -lt $maxAttempts) {
+        $attempt++
+        try {
+            $result = docker exec postgres pg_isready -U postgres
+            if ($result -like "*accepting connections*") {
+                $isReady = $true
+                Write-Host "PostgreSQL is ready."
+            }
+            else {
+                Write-Host "PostgreSQL not ready yet. Waiting... (Attempt $attempt/$maxAttempts)"
+                Start-Sleep -Seconds 2
+            }
+        }
+        catch {
+            Write-Host "Error checking PostgreSQL status. Waiting... (Attempt $attempt/$maxAttempts)"
+            Start-Sleep -Seconds 2
+        }
     }
     
-    return $testResult
+    if (-not $isReady) {
+        Write-Host "PostgreSQL did not become ready in time. Exiting."
+        return
+    }
+    
+    # Apply the database update script
+    Write-Host "Applying database updates..."
+    Get-Content -Path "./apps/credit-faucet/update_db.sql" | docker exec -i postgres psql -U postgres
+    
+    Write-Host "Database update completed."
 }
 
-# Function to stop the application
-function Stop-App {
-    Write-ColorMessage "Stopping the application..." $Yellow
-    docker compose down
-    Write-ColorMessage "Application stopped." $Green
+if ($args.Count -eq 0) {
+    Show-Help
+    return
 }
 
-# Main script
-$action = $args[0]
-
-if (-not (Check-Docker)) {
-    exit 1
-}
-
-switch ($action) {
+switch ($args[0].ToLower()) {
+    "help" {
+        Show-Help
+    }
     "build" {
         Rebuild-App
-        break
-    }
-    "logs" {
-        Show-Logs
-        break
-    }
-    "test" {
-        Run-Tests
-        break
-    }
-    "all" {
-        Rebuild-App
-        $testResult = Run-Tests
-        Show-Logs
-        exit $testResult
     }
     "stop" {
         Stop-App
-        break
+    }
+    "start" {
+        Start-App
+    }
+    "logs" {
+        Show-Logs
+    }
+    "test" {
+        Run-Tests
+    }
+    "update-db" {
+        Update-Database
     }
     default {
-        Write-ColorMessage "Usage: .\test_orvio.ps1 {build|logs|test|all|stop}" $Yellow
-        Write-Host "  build - Rebuild and restart the application"
-        Write-Host "  logs  - Show application logs"
-        Write-Host "  test  - Run tests"
-        Write-Host "  all   - Rebuild, test, and show logs"
-        Write-Host "  stop  - Stop the application"
-        exit 1
+        Write-Host "Unknown command: $($args[0])"
+        Show-Help
     }
 }
 

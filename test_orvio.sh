@@ -21,6 +21,21 @@ check_docker() {
   echo -e "${GREEN}Docker is running!${NC}"
 }
 
+# Function to show help
+show_help() {
+  echo -e "Usage: $0 [command]"
+  echo -e ""
+  echo -e "Commands:"
+  echo -e "  help        Show this help message"
+  echo -e "  build       Rebuild and restart the application"
+  echo -e "  stop        Stop all containers"
+  echo -e "  start       Start all containers"
+  echo -e "  logs        Show logs"
+  echo -e "  test        Run tests"
+  echo -e "  update-db   Update database schema"
+  echo -e ""
+}
+
 # Function to rebuild and restart the application
 rebuild_app() {
   echo -e "${YELLOW}Rebuilding and restarting the application...${NC}"
@@ -33,10 +48,17 @@ rebuild_app() {
   echo -e "${GREEN}Application should be up now.${NC}"
 }
 
+# Function to start containers
+start_app() {
+  echo -e "${YELLOW}Starting all containers...${NC}"
+  docker compose up -d
+  echo -e "${GREEN}Containers started.${NC}"
+}
+
 # Function to show logs
 show_logs() {
   echo -e "${YELLOW}Showing application logs...${NC}"
-  docker compose logs -f api-gateway
+  docker compose logs -f
 }
 
 # Function to run tests
@@ -61,11 +83,56 @@ stop_app() {
   echo -e "${GREEN}Application stopped.${NC}"
 }
 
+# Function to update the database schema
+update_database() {
+  echo -e "${YELLOW}Updating database schema...${NC}"
+  
+  # Wait for PostgreSQL to be ready
+  echo -e "${YELLOW}Waiting for PostgreSQL to be ready...${NC}"
+  MAX_ATTEMPTS=30
+  ATTEMPT=0
+  
+  while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    ATTEMPT=$((ATTEMPT+1))
+    
+    if docker exec postgres pg_isready -U postgres | grep -q "accepting connections"; then
+      echo -e "${GREEN}PostgreSQL is ready.${NC}"
+      break
+    else
+      echo -e "${YELLOW}PostgreSQL not ready yet. Waiting... (Attempt $ATTEMPT/$MAX_ATTEMPTS)${NC}"
+      sleep 2
+    fi
+    
+    if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+      echo -e "${RED}PostgreSQL did not become ready in time. Exiting.${NC}"
+      return 1
+    fi
+  done
+  
+  # Apply the database update script
+  echo -e "${YELLOW}Applying database updates...${NC}"
+  cat ./apps/credit-faucet/update_db.sql | docker exec -i postgres psql -U postgres
+  
+  echo -e "${GREEN}Database update completed.${NC}"
+}
+
 # Main script
+if [ -z "$1" ]; then
+  show_help
+  exit 0
+fi
+
 case "$1" in
+  help)
+    show_help
+    ;;
   build)
     check_docker
     rebuild_app
+    ;;
+  start)
+    check_docker
+    start_app
     ;;
   logs)
     check_docker
@@ -87,13 +154,13 @@ case "$1" in
     check_docker
     stop_app
     ;;
+  update-db)
+    check_docker
+    update_database
+    ;;
   *)
-    echo -e "${YELLOW}Usage: $0 {build|logs|test|all|stop}${NC}"
-    echo -e "  build - Rebuild and restart the application"
-    echo -e "  logs  - Show application logs"
-    echo -e "  test  - Run tests"
-    echo -e "  all   - Rebuild, test, and show logs"
-    echo -e "  stop  - Stop the application"
+    echo -e "${RED}Unknown command: $1${NC}"
+    show_help
     exit 1
     ;;
 esac
