@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - monolith-migration
+      - monolith-migration-shared-network
 
 jobs:
   create-alpine-variant:
@@ -17,7 +17,7 @@ jobs:
         run: |
           git config --global user.name 'GitHub Actions Bot'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git checkout -b monolith-migration-alpine
+          git checkout -b monolith-migration-shared-network-alpine
           
       - name: Update Docker images in docker-compose.yml
         run: |
@@ -101,4 +101,4 @@ jobs:
           git add $(find . -name "Dockerfile" -type f)
           
           git commit -m "Update Docker images to Alpine variants and remove UI tools"
-          git push -f origin monolith-migration-alpine 
+          git push -f origin monolith-migration-shared-network-alpine 
