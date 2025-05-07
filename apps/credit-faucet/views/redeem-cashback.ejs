@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redeem Cashback - Orvio</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .header {
+      background-color: #4a67d7;
+      color: white;
+      text-align: center;
+      padding: 2rem 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 1rem 2rem;
+    }
+    
+    form {
+      background-color: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    
+    .btn {
+      background-color: #4a67d7;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    
+    .btn:hover {
+      background-color: #3a57c7;
+    }
+    
+    .btn:disabled {
+      background-color: #a0a0a0;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+    
+    .back-link {
+      color: #4a67d7;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 1rem;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    
+    .calculator {
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+    }
+    
+    .calculator p {
+      margin: 0.5rem 0;
+    }
+    
+    .total {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #4a67d7;
+    }
+    
+    .error {
+      color: #dc3545;
+      font-size: 0.85rem;
+      margin-top: 0.4rem;
+    }
+    
+    .success-message {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+      display: none;
+      text-align: center;
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+    
+    /* OTP Verification Styles */
+    .otp-section {
+      border-top: 1px solid #eee;
+      padding-top: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    #otpRequestStatus {
+      margin-top: 0.75rem;
+    }
+    
+    #otpRequestStatus .success {
+      color: #28a745;
+      font-weight: 500;
+    }
+    
+    #otpRequestStatus .error {
+      color: #dc3545;
+      font-weight: 500;
+    }
+    
+    #otpVerificationForm {
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Redeem Cashback Points</h1>
+    <p>Convert your cashback points to money</p>
+  </div>
+  
+  <div class="container">
+    <div id="successMessage" class="success-message">
+      Your cashback points have been successfully redeemed! The money will be transferred to your UPI ID shortly.
+    </div>
+    
+    <form id="redeemForm">
+      <div class="form-group">
+        <label for="phoneNumber">Phone Number (with country code)</label>
+        <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="+911234567890" required>
+        <div id="phoneError" class="error"></div>
+      </div>
+      
+      <div id="userInfo" style="display: none;" class="calculator">
+        <p>User ID: <span id="userId"></span></p>
+        <p>Current credits: <span id="currentCredits"></span></p>
+        <p>Available cashback points: <span id="currentCashback"></span></p>
+      </div>
+      
+      <div class="form-group">
+        <label for="upiId">UPI ID</label>
+        <input type="text" id="upiId" name="upiId" placeholder="yourname@upi" required>
+        <div id="upiError" class="error"></div>
+      </div>
+      
+      <div class="form-group">
+        <label for="points">Points to Redeem</label>
+        <input type="number" id="points" name="points" min="10" step="0.01" value="10" required>
+        <div id="pointsError" class="error"></div>
+      </div>
+      
+      <div class="calculator">
+        <p>Value per point: ₹0.30</p>
+        <p>Points to redeem: <span id="pointCount">10</span></p>
+        <p class="total">You will receive: ₹<span id="totalAmount">3.00</span></p>
+      </div>
+      
+      <!-- OTP Verification Section -->
+      <div class="form-group otp-section">
+        <button type="button" class="btn btn-secondary" id="requestOtpBtn">Request OTP</button>
+        <div id="otpRequestStatus"></div>
+        
+        <div id="otpVerificationForm" style="display: none; margin-top: 15px;">
+          <label for="otp">Enter OTP</label>
+          <input type="text" id="otp" name="otp" placeholder="123456" required>
+          <div id="otpError" class="error"></div>
+        </div>
+      </div>
+      
+      <button type="submit" class="btn" id="submitBtn">Redeem Points</button>
+    </form>
+    
+    <div class="text-center">
+      <a href="/" class="back-link">← Back to home</a>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const pointsInput = document.getElementById('points');
+      const pointCount = document.getElementById('pointCount');
+      const totalAmount = document.getElementById('totalAmount');
+      const phoneInput = document.getElementById('phoneNumber');
+      const phoneError = document.getElementById('phoneError');
+      const pointsError = document.getElementById('pointsError');
+      const upiError = document.getElementById('upiError');
+      const userInfoDiv = document.getElementById('userInfo');
+      const userId = document.getElementById('userId');
+      const currentCredits = document.getElementById('currentCredits');
+      const currentCashback = document.getElementById('currentCashback');
+      const successMessage = document.getElementById('successMessage');
+      const requestOtpBtn = document.getElementById('requestOtpBtn');
+      const otpRequestStatus = document.getElementById('otpRequestStatus');
+      const otpVerificationForm = document.getElementById('otpVerificationForm');
+      const otpInput = document.getElementById('otp');
+      const otpError = document.getElementById('otpError');
+      
+      // Transaction ID for OTP verification
+      let transactionId = null;
+      
+      // Update calculator on input change
+      pointsInput.addEventListener('input', updateCalculator);
+      
+      function updateCalculator() {
+        const points = parseFloat(pointsInput.value) || 0;
+        const amount = (points * 0.3).toFixed(2);
+        
+        pointCount.textContent = points.toFixed(2);
+        totalAmount.textContent = amount;
+        
+        // Validate points
+        if (points < 10) {
+          pointsError.textContent = 'Minimum 10 points required';
+        } else {
+          pointsError.textContent = '';
+        }
+      }
+      
+      // Fetch user info when phone number is provided
+      phoneInput.addEventListener('blur', async function() {
+        const phoneNumber = phoneInput.value.trim();
+        
+        // Validate phone number format
+        if (!phoneNumber.match(/^\+[0-9]{10,14}$/)) {
+          phoneError.textContent = 'Invalid phone number format. Use format: +911234567890';
+          userInfoDiv.style.display = 'none';
+          return;
+        }
+        
+        phoneError.textContent = '';
+        
+        try {
+          const response = await fetch(`/api/user/${phoneNumber}`);
+          
+          if (!response.ok) {
+            phoneError.textContent = 'User not found with this phone number';
+            userInfoDiv.style.display = 'none';
+            return;
+          }
+          
+          const user = await response.json();
+          userId.textContent = user.id;
+          currentCredits.textContent = user.credits;
+          
+          // Format cashback points to 2 decimal places
+          const cashbackPoints = parseFloat(user.cashbackPoints);
+          currentCashback.textContent = cashbackPoints.toFixed(2);
+          
+          userInfoDiv.style.display = 'block';
+          
+          // Update maximum points that can be redeemed
+          pointsInput.max = cashbackPoints;
+          
+          // Check if user has enough points
+          if (cashbackPoints < 10) {
+            pointsError.textContent = `You need at least 10 cashback points to redeem. Current points: ${cashbackPoints.toFixed(2)}`;
+            pointsInput.disabled = true;
+            requestOtpBtn.disabled = true;
+          } else {
+            pointsInput.disabled = false;
+            requestOtpBtn.disabled = false;
+            
+            // Set default value to all available points if less than current value
+            if (cashbackPoints < parseFloat(pointsInput.value)) {
+              pointsInput.value = cashbackPoints.toFixed(2);
+              updateCalculator();
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user:', error);
+          phoneError.textContent = 'Error fetching user information';
+          userInfoDiv.style.display = 'none';
+        }
+      });
+      
+      // Request OTP button handler
+      requestOtpBtn.addEventListener('click', async function() {
+        const phoneNumber = phoneInput.value.trim();
+        
+        if (!phoneNumber) {
+          otpRequestStatus.innerHTML = '<span class="error">Please enter a phone number first</span>';
+          return;
+        }
+        
+        // Disable button during request
+        requestOtpBtn.disabled = true;
+        requestOtpBtn.textContent = 'Sending...';
+        otpRequestStatus.innerHTML = '';
+        
+        try {
+          const response = await fetch('http://localhost:3000/auth/sendOtp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              phoneNumber: phoneNumber
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to send OTP');
+          }
+          
+          const data = await response.json();
+          transactionId = data.transactionId;
+          
+          otpRequestStatus.innerHTML = '<span class="success">OTP sent successfully! Check your phone.</span>';
+          otpVerificationForm.style.display = 'block';
+          otpInput.focus();
+          
+        } catch (error) {
+          console.error('Error requesting OTP:', error);
+          otpRequestStatus.innerHTML = `<span class="error">Failed to send OTP: ${error.message}</span>`;
+        } finally {
+          requestOtpBtn.disabled = false;
+          requestOtpBtn.textContent = 'Request OTP';
+        }
+      });
+      
+      // Validate UPI ID
+      document.getElementById('upiId').addEventListener('blur', function() {
+        const upiId = this.value.trim();
+        
+        if (!upiId.match(/^[\w\.\-]+@[\w\-]+$/)) {
+          upiError.textContent = 'Invalid UPI ID format. Use format: yourname@upi';
+        } else {
+          upiError.textContent = '';
+        }
+      });
+      
+      // Form submission
+      document.getElementById('redeemForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const phoneNumber = phoneInput.value.trim();
+        const upiId = document.getElementById('upiId').value.trim();
+        const points = parseFloat(pointsInput.value) || 0;
+        const otp = otpInput.value.trim();
+        
+        // Validate inputs
+        let isValid = true;
+        
+        if (!phoneNumber.match(/^\+[0-9]{10,14}$/)) {
+          phoneError.textContent = 'Invalid phone number format. Use format: +911234567890';
+          isValid = false;
+        }
+        
+        if (!upiId.match(/^[\w\.\-]+@[\w\-]+$/)) {
+          upiError.textContent = 'Invalid UPI ID format. Use format: yourname@upi';
+          isValid = false;
+        }
+        
+        if (points < 10) {
+          pointsError.textContent = 'Minimum 10 points required';
+          isValid = false;
+        }
+        
+        const cashbackAvailable = parseFloat(currentCashback.textContent) || 0;
+        if (points > cashbackAvailable) {
+          pointsError.textContent = `You only have ${cashbackAvailable.toFixed(2)} points available`;
+          isValid = false;
+        }
+        
+        if (!userId.textContent) {
+          phoneError.textContent = 'User not found with this phone number';
+          isValid = false;
+        }
+        
+        if (!transactionId || !otp) {
+          otpError.textContent = 'OTP verification is required. Please request and enter OTP.';
+          isValid = false;
+        }
+        
+        if (!isValid) return;
+        
+        // Disable button during submission
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing...';
+        
+        try {
+          const response = await fetch('/api/redeem-cashback', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              userId: userId.textContent,
+              upiId: upiId,
+              pointsToRedeem: points,
+              transactionId: transactionId,
+              userInputOtp: otp
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to redeem points');
+          }
+          
+          const result = await response.json();
+          
+          // Show success message
+          successMessage.style.display = 'block';
+          
+          // Reset form
+          document.getElementById('redeemForm').reset();
+          userInfoDiv.style.display = 'none';
+          otpVerificationForm.style.display = 'none';
+          otpRequestStatus.innerHTML = '';
+          transactionId = null;
+          
+          // Scroll to top to show success message
+          window.scrollTo(0, 0);
+        } catch (error) {
+          console.error('Error redeeming points:', error);
+          alert(`Failed to redeem points: ${error.message}`);
+        } finally {
+          // Re-enable button
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Redeem Points';
+        }
+      });
+      
+      // Initialize calculator
+      updateCalculator();
+    });
+  </script>
+</body>
+</html> 

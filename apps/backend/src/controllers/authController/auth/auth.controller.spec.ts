@@ -62,7 +62,7 @@ describe('Auth Service (e2e)', () => {
   it('should register a device', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ accessToken, deviceHash: 'test-device-hash', fcmToken: 'test-fcm-token' });
+      .send({ accessToken, phoneNumber: phoneNumber, fcmToken: 'test-fcm-token' });
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
