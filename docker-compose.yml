@@ -1,8 +1,6 @@
-# TODO: persist data in postgres contianers 
-# and redis how (okay maybe not redis)
 services:
   postgres:
-    image: postgres:13-alpine
+    image: postgres
     container_name: postgres
     user: postgres
     ports:
@@ -11,13 +9,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
-    networks:
-      - shared-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
+    networks:
+      - orvio-bundl-network
 
   redis:
-    image: redis:alpine
+    image: redis
     container_name: redis
     command: redis-server --databases 16
     ports:
@@ -27,7 +25,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - shared-network
+      - orvio-bundl-network
 
   api-gateway:
     build:
@@ -42,10 +40,10 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    networks:
-      - shared-network
     command: npm run start:dev backend
-  
+    networks:
+      - orvio-bundl-network
+
   credit-faucet:
     build:
       context: ./
@@ -61,8 +59,6 @@ services:
       - "3001:3001"
     env_file:
       - .env
-    networks:
-      - shared-network
     environment:
       - PORT=3001
       - POSTGRES_HOST=postgres
@@ -70,36 +66,8 @@ services:
       - CASHFREE_APP_ID=${CASHFREE_APP_ID:-test_app_id}
       - CASHFREE_SECRET_KEY=${CASHFREE_SECRET_KEY:-test_secret_key}
       - CASHFREE_API_URL=${CASHFREE_API_URL:-https://sandbox.cashfree.com/pg}
-  
-  # TODO: make pg admin work through env variables
-  # auto add server, even if not, make it work
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   container_name: pgadmin
-  #   ports:
-  #     - "8080:80"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   env_file:
-  #     - .env
-  
-  # redisinsight:
-  #   image: redislabs/redisinsight:latest
-  #   container_name: redisinsight
-  #   ports:
-  #     - "5540:5540"
-  #   depends_on:
-  #     - redis
-  #   volumes:
-  #     - redisinsight_data:/db
-  #   environment:
-  #     - REDIS_URI=redis://redis:6379
-      
-networks:
-  shared-network:
-    external: true
-    name: orvio-bundl-network
+    networks:
+      - orvio-bundl-network
 
 volumes:
   postgres_data:
@@ -107,3 +75,6 @@ volumes:
   redis_data:
     driver: local
 
+networks:
+  orvio-bundl-network:
+    external: true
