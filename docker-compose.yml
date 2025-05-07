@@ -2,7 +2,7 @@
 # and redis how (okay maybe not redis)
 services:
   postgres:
-    image: postgres:13
+    image: postgres:13-alpine
     container_name: postgres
     user: postgres
     ports:
@@ -15,7 +15,7 @@ services:
       test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
 
   redis:
-    image: redis:6
+    image: redis:alpine
     container_name: redis
     command: redis-server --databases 16
     ports:
@@ -92,6 +92,4 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
-    driver: local
-  redisinsight_data:
     driver: local
