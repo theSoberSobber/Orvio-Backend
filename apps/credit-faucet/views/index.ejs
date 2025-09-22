@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orvio Credit System</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 20px;
+    }
+    
+    .header h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+    
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+    }
+    
+    .option-box {
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+    
+    .option-box:hover {
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .option-box h2 {
+      color: #3498db;
+      margin-top: 0;
+    }
+    
+    .option-box p {
+      color: #7f8c8d;
+    }
+    
+    .btn {
+      display: inline-block;
+      background-color: #3498db;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    
+    .btn:hover {
+      background-color: #2980b9;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Orvio Credit System</h1>
+    <p>Purchase credits or redeem your cashback points</p>
+  </div>
+  
+  <div class="container">
+    <div class="option-box">
+      <h2>Buy Credits</h2>
+      <p>Purchase credits to use for Orvio OTP services. Each credit costs ₹0.3.</p>
+      <p>Credits allow you to send authenticated OTP messages to your users.</p>
+      <div class="text-center">
+        <a href="/buy-credits" class="btn">Buy Credits</a>
+      </div>
+    </div>
+    
+    <div class="option-box">
+      <h2>Redeem Cashback Points</h2>
+      <p>Convert your cashback points to money and transfer directly to your UPI ID.</p>
+      <p>You need at least 10 cashback points to redeem. Each point is worth ₹0.3.</p>
+      <div class="text-center">
+        <a href="/redeem-cashback" class="btn">Redeem Points</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html> 

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Failed - Orvio</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 20px;
+    }
+    
+    .header h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+    
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .error-icon {
+      font-size: 80px;
+      color: #e74c3c;
+      margin-bottom: 20px;
+    }
+    
+    .details {
+      background-color: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    
+    .btn {
+      display: inline-block;
+      background-color: #3498db;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+      margin: 10px;
+    }
+    
+    .btn:hover {
+      background-color: #2980b9;
+    }
+    
+    .btn-danger {
+      background-color: #e74c3c;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Payment Failed</h1>
+    <p>We couldn't process your payment</p>
+  </div>
+  
+  <div class="container">
+    <div class="error-icon">✗</div>
+    
+    <h2>There was a problem with your payment</h2>
+    <p>We were unable to process your credit purchase.</p>
+    
+    <div class="details">
+      <p><strong>Order ID:</strong> <%= orderId %></p>
+      <p><strong>Error date:</strong> <%= new Date().toLocaleString() %></p>
+      <p>The transaction was declined by the payment processor or cancelled.</p>
+    </div>
+    
+    <p>You have not been charged for this transaction.</p>
+    
+    <div>
+      <a href="/buy-credits" class="btn">Try Again</a>
+      <a href="/" class="btn btn-danger">Cancel</a>
+    </div>
+  </div>
+</body>
+</html> 

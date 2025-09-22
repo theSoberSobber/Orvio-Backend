@@ -1,0 +1,104 @@
+name: Create Alpine Variant
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - monolith-migration
+
+jobs:
+  create-alpine-variant:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Create Alpine branch
+        run: |
+          git config --global user.name 'GitHub Actions Bot'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -b monolith-migration-alpine
+          
+      - name: Update Docker images in docker-compose.yml
+        run: |
+          # Update postgres image - target the image: line specifically
+          sed -i 's/image: postgres:13/image: postgres:13-alpine/g' docker-compose.yml
+          
+          # Update redis image - target the image: line specifically 
+          sed -i 's/image: redis:6/image: redis:alpine/g' docker-compose.yml
+          
+          # Show changes
+          git diff docker-compose.yml
+      
+      - name: Remove pgadmin and redisinsight services
+        run: |
+          echo "Original docker-compose.yml content:"
+          cat docker-compose.yml
+          
+          # Create a new docker-compose.yml with awk to remove pgadmin, redisinsight, and redisinsight_data volume
+          awk '
+          BEGIN { skip = 0; service_level = 0; }
+          
+          # Skip entire pgadmin and redisinsight service blocks
+          /^  pgadmin:/ { skip = 1; next; }
+          /^  redisinsight:/ { skip = 1; next; }
+          
+          # Reset skip when we hit the next service at same indentation level
+          skip == 1 && /^  [a-zA-Z]/ { skip = 0; }
+          
+          # Skip the redisinsight_data volume and its contents
+          /^  redisinsight_data:/ { skip = 1; next; }
+          
+          # Reset skip for volumes when we hit the next volume or the end of volumes section
+          skip == 1 && (/^  [a-zA-Z]/ || /^[a-zA-Z]/) { skip = 0; }
+          
+          # Print lines that are not skipped
+          skip == 0 { print $0; }
+          ' docker-compose.yml > docker-compose.yml.new
+          
+          # Check if anything changed
+          if ! diff -q docker-compose.yml docker-compose.yml.new > /dev/null; then
+            echo "Changes detected, updating docker-compose.yml"
+            mv docker-compose.yml.new docker-compose.yml
+          else
+            echo "No changes detected"
+            rm docker-compose.yml.new
+          fi
+          
+          echo "Updated docker-compose.yml content:"
+          cat docker-compose.yml
+          
+          # Show diff
+          git diff docker-compose.yml
+      
+      - name: Update all Dockerfiles to use Alpine
+        run: |
+          # Inspect the Dockerfiles
+          echo "Found Dockerfiles:"
+          find . -type f -name "Dockerfile" -exec echo {} \;
+          
+          # Debug: Print content of each Dockerfile
+          find . -type f -name "Dockerfile" -exec cat {} \;
+          
+          # Try multiple sed patterns to ensure we catch all variations
+          find . -type f -name "Dockerfile" -exec sed -i 's/FROM node\s*$/FROM node:alpine/g' {} \;
+          find . -type f -name "Dockerfile" -exec sed -i 's/FROM node /FROM node:alpine /g' {} \;
+          find . -type f -name "Dockerfile" -exec sed -i 's/FROM node$/FROM node:alpine/g' {} \;
+          find . -type f -name "Dockerfile" -exec sed -i 's/FROM node:/FROM node:alpine/g' {} \;
+          
+          # Force update if needed by directly editing the main Dockerfile 
+          if [ -f "apps/backend/Dockerfile" ]; then
+            sed -i '1s/.*/FROM node:alpine/' apps/backend/Dockerfile
+            echo "Directly updated apps/backend/Dockerfile"
+          fi
+          
+          # Show all changes 
+          git diff
+        
+      - name: Commit and push changes
+        run: |
+          git add docker-compose.yml
+          git add $(find . -name "Dockerfile" -type f)
+          
+          git commit -m "Update Docker images to Alpine variants and remove UI tools"
+          git push -f origin monolith-migration-alpine 
